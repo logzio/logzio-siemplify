@@ -1,16 +1,17 @@
+from SiemplifyBase import SiemplifyBase
 from SiemplifyConnectors import SiemplifyConnectorExecution
 from SiemplifyConnectorsDataModel import AlertInfo
 from SiemplifyUtils import output_handler
 
+import concurrent.futures
 import datetime
 import dateparser
 import json
-import uuid
+import os
 import requests
 import sys
+import uuid
 
-
-import os
 
 CONNECTOR_NAME = "fetch-security-events"
 PRODUCT = "LOGZIO_TEST" # TODO
@@ -20,6 +21,9 @@ TRIGGERED_RULES_API_SUFFIX = "v2/security/rules/events/search"
 SORTING_FIELD_INDEX = 0
 SORTING_DESCENDING_INDEX = 1
 SEVERITIES = {'INFO': -1, 'LOW': 40, 'MEDIUM': 60, 'HIGH': 80, 'SEVERE': 100} # maps logzio severity values to siemplify severities
+DEFAULT_PAGE_SIZE = 25
+MIN_PAGE_SIZE = 1
+MAX_PAGE_SIZE = 1000
 
 
 @output_handler
@@ -37,19 +41,11 @@ def main():
     request_body = create_request_body_obj(siemplify)
     events_response = fetch_security_events(logzio_api_token, request_body, logzio_region, siemplify)
     if events_response is not None:
-        siemplify.LOGGER.info("Retrieved {} events from Logz.io".format(events_response["total"]))
-        count = 0
-        for logzio_event in events_response["results"]:
-            event = create_event(siemplify, logzio_event)
-            alert = create_alert(siemplify, event, logzio_event)
-            if alert is not None:
-                alerts.append(alert)
-                siemplify.LOGGER.info("Added Alert {} to package results".format(logzio_event["alertId"]))
-    siemplify.LOGGER.info("Total alerts added: {}".format(len(alerts)))
+        alerts = create_alerts_array(siemplify, events_response, logzio_api_token, logzio_region)
     siemplify.return_package(alerts)
     
     
-def create_request_body_obj(siemplify):
+def create_request_body_obj(siemplify, page_number=1):
     """ Creates request to send to Logz.io API """
     request_body = {}
     from_date = siemplify.extract_connector_param("from_date", is_mandatory=True)
@@ -57,8 +53,10 @@ def create_request_body_obj(siemplify):
     search_term = siemplify.extract_connector_param("search_term", is_mandatory=False)
     severities = siemplify.extract_connector_param("severities", is_mandatory=False)
     sort = siemplify.extract_connector_param("sort", is_mandatory=False)
-    page_number = siemplify.extract_connector_param("page_number", is_mandatory=False, default_value=1, input_type=int)
-    page_size = siemplify.extract_connector_param("page_size", is_mandatory=False, default_value=25, input_type=int)
+    page_size = siemplify.extract_connector_param("page_size", is_mandatory=False, default_value=DEFAULT_PAGE_SIZE, input_type=int)
+    if page_size < MIN_PAGE_SIZE or page_size > MAX_PAGE_SIZE:
+        siemplify.LOGGER.warning("Invalid page size. Should be betwwen {} and {}. Reverting to default page size: {}".format(MIN_PAGE_SIZE, MAX_PAGE_SIZE, DEFAULT_PAGE_SIZE))
+        page_size = DEFAULT_PAGE_SIZE
     request_body["filter"] = {}
     request_body["filter"]["timeRange"] = dict(fromDate=parse_date(from_date, siemplify), toDate=parse_date(to_date, siemplify))
     if search_term != None:
@@ -182,9 +180,68 @@ def create_alert(siemplify, event, logzio_event):
         siemplify.LOGGER.error("Failed to process event {} for alert {}".format(logzio_event["alertEventId"], logzio_event["alertId"]))
         siemplify.LOGGER.exception(e)
         # TODO: make alert_info None in case of exception?
-
     return alert_info
+    
+
+def create_alerts_array(siemplify, events_response, api_token, logzio_region):
+    alerts = []
+    collected_events = events_response["results"]
+    num_collected_events = len(collected_events)
+    total_results_available = int(events_response["total"])
+    current_page_number = int(events_response["pagination"]["pageNumber"])
+    num_pages = total_results_available/int(events_response["pagination"]["pageSize"])
+    siemplify.LOGGER.info("Request retrieved {} events from Logz.io".format(num_collected_events))
+    siemplify.LOGGER.info("There are {} results in your Logz.io account that match your query".format(total_results_available))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_pages) as executor:
+        futures = []
+        current_page = int(events_response["pagination"]["pageNumber"])
+        while num_pages > current_page:
+            current_page += 1
+            print("fetching page: {}".format(current_page))
+            futures.append(executor.submit(execute_logzio_api, siemplify, api_token, logzio_region, current_page))
+        for future in concurrent.futures.as_completed(futures):
+            new_event = future.result()
+            if new_event is not None:
+                collected_events += new_event["results"]
+                num_collected_events += len(new_event["results"])
+                siemplify.LOGGER.info("Fetched {} events".format(len(new_event["results"])))
+        
+        if total_results_available != num_collected_events:
+            siemplify.LOGGER.warning("Retrieved {} events out of {} available events. Only the retrieved events will be injected to Siemplify".format(num_collected_events, total_results_available))
+    siemplify.LOGGER.info("Total collected: {}".format(len(collected_events)))
+    
+    sb = SiemplifyBase()
+    sb.script_name = CONNECTOR_NAME
+    latest_timestamp = sb.fetch_timestamp()
+    siemplify.LOGGER.info("--------------> latest timestamp saved: {}".format(latest_timestamp))
+    for logzio_event in collected_events:
+        event = create_event(siemplify, logzio_event)
+        alert = create_alert(siemplify, event, logzio_event)
+        if alert is not None:
+            alerts.append(alert)
+            siemplify.LOGGER.info("Added Alert {} to package results".format(logzio_event["alertId"]))
+            current_end_time = int(logzio_event["eventDate"])
+            if latest_timestamp < current_end_time:
+                latest_timestamp = current_end_time
+    
+    sb.save_timestamp(new_timestamp=latest_timestamp)
+    siemplify.LOGGER.info("Latest timestamp: {}".format(latest_timestamp))
+    
+    return alerts
+
+
+def execute_logzio_api(siemplify, api_token, logzio_region, page_number=1):
+    try:
+        siemplify.LOGGER.info("Fetching page number {}".format(page_number))
+        new_request = create_request_body_obj(siemplify, page_number)
+        new_events = fetch_security_events(api_token, new_request, logzio_region, siemplify)
+        if new_events != None:
+            collected_events += new_events["results"]
+            num_collected_events += len(new_events["results"])
+    except Exception as e:
+        siemplify.LOGGER.error("Error occurred while fetching events from page {}: {}".format(page_number, e))
     
 
 if __name__ == "__main__":
     main()
+    
