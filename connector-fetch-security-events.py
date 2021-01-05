@@ -67,7 +67,7 @@ def create_request_body_obj(siemplify, sb, page_number=1):
         siemplify.LOGGER.warn("Invalid page size. Should be betwwen {} and {}. Reverting to default page size: {}".format(MIN_PAGE_SIZE, MAX_PAGE_SIZE, DEFAULT_PAGE_SIZE))
         page_size = DEFAULT_PAGE_SIZE
     request_body["filter"] = {}
-    request_body["filter"]["timeRange"] = dict(fromDate=parse_date(from_date, siemplify), toDate=parse_date(to_date, siemplify))
+    request_body["filter"]["timeRange"] = dict(fromDate=from_date, toDate=to_date)
     if search_term != None:
         request_body["filter"]["searchTerm"] = search_term
     if severities != None:
@@ -88,13 +88,13 @@ def get_sort_array(sort_str):
         sort_arr.append(dict_obj)
     return sort_arr
 
-def parse_date(date_to_parse, siemplify):
-    try:
-        parsed = datetime.datetime.timestamp(dateparser.parse(date_to_parse))
-        return parsed
-    except (ValueError, TypeError) as e:
-        siemplify.LOGGER.error("Couldn't parse date: {}. Error:\n{}".format(e))
-        pass
+# def parse_date(date_to_parse, siemplify):
+#     try:
+#         parsed = datetime.datetime.timestamp(dateparser.parse(date_to_parse))
+#         return parsed
+#     except (ValueError, TypeError) as e:
+#         siemplify.LOGGER.error("Couldn't parse date: {}. Error:\n{}".format(e))
+#         pass
 
 
 def get_base_api_url(region):
