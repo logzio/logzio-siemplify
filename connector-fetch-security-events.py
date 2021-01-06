@@ -14,7 +14,7 @@ import uuid
 
 
 CONNECTOR_NAME = "fetch-security-events"
-PRODUCT = "LOGZIO_TEST" # TODO
+PRODUCT = "Logz.io" # TODO
 VENDOR = "Logz.io" # TODO
 BASE_URL = "https://api.logz.io/"
 TRIGGERED_RULES_API_SUFFIX = "v2/security/rules/events/search"
