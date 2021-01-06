@@ -1,4 +1,3 @@
-from SiemplifyBase import SiemplifyBase
 from SiemplifyConnectors import SiemplifyConnectorExecution
 from SiemplifyConnectorsDataModel import AlertInfo
 from SiemplifyUtils import output_handler, convert_datetime_to_unix_time
@@ -32,8 +31,7 @@ def main():
     alerts = []  # The main output of each connector run
     siemplify = SiemplifyConnectorExecution()  # Siemplify main SDK wrapper
     siemplify.script_name = CONNECTOR_NAME
-    # siemplify = SiemplifyBase()
-    # siemplify.script_name = CONNECTOR_NAME
+
     # TODO: delete those 2 lines when done with debugging:
     # siemplify.save_timestamp(new_timestamp=0)
     # return None
@@ -46,22 +44,22 @@ def main():
     
     # request_body = create_request_body_obj(siemplify, siemplify)
     # events_response = fetch_security_events(logzio_api_token, request_body, logzio_region, siemplify)
-    events_response = execute_logzio_api(siemplify, logzio_api_token, logzio_region, siemplify)
+    events_response = execute_logzio_api(siemplify, logzio_api_token, logzio_region)
     if events_response is not None:
-        alerts = create_alerts_array(siemplify, events_response, logzio_api_token, logzio_region, siemplify)
+        alerts = create_alerts_array(siemplify, events_response, logzio_api_token, logzio_region)
     # else:
     #     raise TimeoutError("Timeout error occurred when fetching Logz.io events")
-    siemplify.LOGGER.info("Alert: {}".format(alerts[0].display_id))
-    siemplify.LOGGER.info("Alert: {}".format(alerts[0].environment))
-    siemplify.LOGGER.info("Alert: {}".format(alerts[0].events))
+    # siemplify.LOGGER.info("Alert: {}".format(alerts[0].display_id))
+    # siemplify.LOGGER.info("Alert: {}".format(alerts[0].environment))
+    # siemplify.LOGGER.info("Alert: {}".format(alerts[0].events))
     siemplify.LOGGER.info("Total {} alerts will be returned to Siemplify".format(len(alerts)))
     siemplify.return_package(alerts)
     
     
-def create_request_body_obj(siemplify, siemplify1, page_number=1):
+def create_request_body_obj(siemplify, page_number=1):
     """ Creates request to send to Logz.io API """
     request_body = {}
-    from_date, to_date = get_dates(siemplify, siemplify)
+    from_date, to_date = get_dates(siemplify)
     search_term = siemplify.extract_connector_param("search_term", is_mandatory=False)
     severities = siemplify.extract_connector_param("severities", is_mandatory=False)
     sort = siemplify.extract_connector_param("sort", is_mandatory=False)
@@ -195,7 +193,7 @@ def create_alert(siemplify, event, logzio_event):
     return alert_info
     
 
-def create_alerts_array(siemplify, events_response, api_token, logzio_region, siemplify1):
+def create_alerts_array(siemplify, events_response, api_token, logzio_region):
     alerts = []
     collected_events = events_response["results"]
     num_collected_events = len(collected_events)
@@ -211,7 +209,7 @@ def create_alerts_array(siemplify, events_response, api_token, logzio_region, si
         while num_pages > current_page:
             current_page += 1
             print("fetching page: {}".format(current_page))
-            futures.append(executor.submit(execute_logzio_api, siemplify, api_token, logzio_region, siemplify, current_page))
+            futures.append(executor.submit(execute_logzio_api, siemplify, api_token, logzio_region, current_page))
         for future in concurrent.futures.as_completed(futures):
             new_event = future.result()
             if new_event is not None:
@@ -234,15 +232,15 @@ def create_alerts_array(siemplify, events_response, api_token, logzio_region, si
             if latest_timestamp < current_end_time:
                 latest_timestamp = current_end_time
     
-    save_latest_timestamp(siemplify, siemplify, latest_timestamp)
+    save_latest_timestamp(siemplify, latest_timestamp)
     
     return alerts
 
 
-def execute_logzio_api(siemplify, api_token, logzio_region, siemplify1, page_number=1):
+def execute_logzio_api(siemplify, api_token, logzio_region, page_number=1):
     try:
         siemplify.LOGGER.info("Fetching page number {}".format(page_number))
-        new_request = create_request_body_obj(siemplify, siemplify, page_number)
+        new_request = create_request_body_obj(siemplify, page_number)
         new_events = fetch_security_events(api_token, new_request, logzio_region, siemplify)
         if new_events != None:
             return new_events
@@ -251,7 +249,7 @@ def execute_logzio_api(siemplify, api_token, logzio_region, siemplify1, page_num
     return None
     
 
-def get_dates(siemplify, siemplify1):
+def get_dates(siemplify):
     start_time = siemplify.fetch_timestamp()
     siemplify.LOGGER.info("@@@@@@@@ fetched timestamp: {}".format(start_time))
     if start_time == 0:
@@ -269,7 +267,7 @@ def get_dates(siemplify, siemplify1):
     return str(start_time), str(end_time)
     
 
-def save_latest_timestamp(siemplify, siemplify1, latest_timestamp_from_events):
+def save_latest_timestamp(siemplify, latest_timestamp_from_events):
     hour_ago_delta = datetime.timedelta(hours=1)
     hour_ago = (datetime.datetime.now() - hour_ago_delta).timestamp()
     siemplify.LOGGER.info("@@@@ timestamp from event: {}".format(latest_timestamp_from_events))
