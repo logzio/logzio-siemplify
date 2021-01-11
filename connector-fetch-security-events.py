@@ -131,12 +131,14 @@ def create_event(siemplify, logzio_event):
     event["alertSummary"] = logzio_event["alertSummary"]
     event["eventDate"] = logzio_event["eventDate"]
     event["severity"] = logzio_event["severity"]
-    for k, v in logzio_event["groupBy"].items():
-        event["groupBy.{}".format(k)] = v
-    tags_counter = 0
-    for tag in logzio_event["tags"]:
-        event["tags.{}".format(tags_counter)] = tag
-        tags_counter += 1
+    if "groupBy" in logzio_event:
+        for k, v in logzio_event["groupBy"].items():
+            event["groupBy.{}".format(k)] = v
+    if "tags" in logzio_event:
+        tags_counter = 0
+        for tag in logzio_event["tags"]:
+            event["tags.{}".format(tags_counter)] = tag
+            tags_counter += 1
     event["hits"] = logzio_event["hits"]
     return event
     
