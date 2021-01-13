@@ -2,7 +2,7 @@ from SiemplifyAction import SiemplifyAction
 from SiemplifyUtils import unix_now, convert_unixtime_to_datetime, output_handler
 from ScriptResult import EXECUTION_STATE_COMPLETED, EXECUTION_STATE_FAILED,EXECUTION_STATE_TIMEDOUT
 
-
+import json
 import requests
 
 BASE_URL = "https://api.logz.io/"
@@ -46,7 +46,7 @@ def execute_logzio_api(siemplify, api_token, logzio_region, page_number=1):
     try:
         siemplify.LOGGER.info("Fetching page number {}".format(page_number))
         new_request = create_request_body_obj(siemplify, alert_event_id, page_number)
-        new_logs = fetch_logs_by_event_id(api_token, new_request, logzio_region, siemplify)
+        new_logs = fetch_logs_by_event_id(api_token, new_request, logzio_region, siemplify, alert_event_id)
         if new_logs != None:
             return new_logs
     except Exception as e:
@@ -85,9 +85,9 @@ def fetch_logs_by_event_id(api_token, req_body, region, siemplify, alert_event_i
         response = requests.post(url, headers=headers, data=body, timeout=5)
         siemplify.LOGGER.info("Status code from Logz.io: {}".format(response.status_code))
         if response.status_code == 200:
-            events_response = json.loads(response.content)
-            if events_response["total"] > 0:
-                return events_response
+            logs_response = json.loads(response.content)
+            if logs_response["total"] > 0:
+                return logs_response
             siemplify.LOGGER.warn("No resultes found to match your request")
             return None
         else:
