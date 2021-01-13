@@ -182,13 +182,12 @@ def create_alerts_array(siemplify, events_response, api_token, logzio_region):
     collected_events = events_response["results"]
     num_collected_events = len(collected_events)
     total_results_available = int(events_response["total"])
-    current_page_number = int(events_response["pagination"]["pageNumber"])
+    current_page = int(events_response["pagination"]["pageNumber"])
     num_pages = math.ceil(total_results_available/int(events_response["pagination"]["pageSize"]))
     siemplify.LOGGER.info("Request retrieved {} events from Logz.io".format(num_collected_events))
     siemplify.LOGGER.info("There are {} results in your Logz.io account that match your query".format(total_results_available))
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_pages) as executor:
         futures = []
-        current_page = int(events_response["pagination"]["pageNumber"])
         while num_pages > current_page:
             current_page += 1
             print("fetching page: {}".format(current_page))

@@ -21,7 +21,8 @@ def main():
         raise ValueError
     logzio_region = siemplify.extract_configuration_param('Logzio',"logzio_region", default_value="")
     logs_response = execute_logzio_api(siemplify, logzio_token, logzio_region)
-    siemplify.LOGGER.info("{}".format(logs_response))
+    # if logs_response is not None:
+    #     logs_json = create_json_result(siemplify, logs_response)
 
     # status = EXECUTION_STATE_COMPLETED  # used to flag back to siemplify system, the action final status
     # output_message = "output message :"  # human readable message, showed in UI as the action result
@@ -103,6 +104,32 @@ def get_base_api_url(region):
         return BASE_URL
     else:
         return BASE_URL.replace("api.", "api-{}.".format(region))
+
+
+# def collect_all_logs(siemplify, logs_response, api_token, logzio_region):
+#     collected_logs = logs_response["results"]
+#     num_collected_logs = len(collected_logs)
+#     total_results_available = int(logs_response["total"])
+#     current_page = int(logs_response["pagination"]["pageNumber"])
+#     num_pages = math.ceil(total_results_available/int(logs_response["pagination"]["pageSize"]))
+#     siemplify.LOGGER.info("Request retrieved {} logs from Logz.io".format(num_collected_events))
+#     siemplify.LOGGER.info("There are {} logs in your Logz.io account that match your alert-event-id".format(total_results_available))
+#     with concurrent.futures.ThreadPoolExecutor(max_workers=num_pages) as executor:
+#         futures = []
+#         while num_pages > current_page:
+#             current_page += 1
+#             print("fetching page: {}".format(current_page))
+#             futures.append(executor.submit(execute_logzio_api, siemplify, api_token, logzio_region, current_page))
+#         for future in concurrent.futures.as_completed(futures):
+#             new_event = future.result()
+#             if new_event is not None:
+#                 collected_events += new_event["results"]
+#                 num_collected_events += len(new_event["results"])
+#                 siemplify.LOGGER.info("Fetched {} events".format(len(new_event["results"])))
+        
+#         if total_results_available != num_collected_events:
+#             siemplify.LOGGER.warn("Retrieved {} events out of {} available events. Only the retrieved events will be injected to Siemplify".format(num_collected_events, total_results_available))
+#     siemplify.LOGGER.info("Total collected: {}".format(len(collected_events)))
 
 
 if __name__ == "__main__":
