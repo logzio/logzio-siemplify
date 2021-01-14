@@ -122,24 +122,28 @@ def create_event(siemplify, logzio_event):
     """
     siemplify.LOGGER.info("Processing siemplify event for logzio security event: {}".format(logzio_event["alertEventId"]))
     event = {}
-    event["StartTime"] =  logzio_event["alertWindowStartDate"]
-    event["EndTime"] = logzio_event["alertWindowEndDate"]
-    event["event_name"] = logzio_event["name"]
-    event["device_product"] = PRODUCT # ie: "device_product" is the field name that describes the product the event originated from.
-    event["alertEventId"] = logzio_event["alertEventId"]
-    event["description"] = logzio_event["description"]
-    event["alertSummary"] = logzio_event["alertSummary"]
-    event["eventDate"] = logzio_event["eventDate"]
-    event["severity"] = logzio_event["severity"]
-    if "groupBy" in logzio_event:
-        for k, v in logzio_event["groupBy"].items():
-            event["groupBy.{}".format(k)] = v
-    if "tags" in logzio_event:
-        tags_counter = 0
-        for tag in logzio_event["tags"]:
-            event["tags.{}".format(tags_counter)] = tag
-            tags_counter += 1
-    event["hits"] = logzio_event["hits"]
+    try:
+        event["StartTime"] =  logzio_event["alertWindowStartDate"]
+        event["EndTime"] = logzio_event["alertWindowEndDate"]
+        event["event_name"] = logzio_event["name"]
+        event["device_product"] = PRODUCT # ie: "device_product" is the field name that describes the product the event originated from.
+        event["alertEventId"] = logzio_event["alertEventId"]
+        event["description"] = logzio_event["description"]
+        event["alertSummary"] = logzio_event["alertSummary"]
+        event["eventDate"] = logzio_event["eventDate"]
+        event["severity"] = logzio_event["severity"]
+        if "groupBy" in logzio_event:
+            for k, v in logzio_event["groupBy"].items():
+                event["groupBy.{}".format(k)] = v
+        if "tags" in logzio_event:
+            tags_counter = 0
+            for tag in logzio_event["tags"]:
+                event["tags.{}".format(tags_counter)] = tag
+                tags_counter += 1
+        event["hits"] = logzio_event["hits"]
+    except Exception as e:
+        siemplify.LOGGER.error("Error occurred while trying to process logzio event {}:{}\n Dropping event.".format(logzio_event["alertEventId"], e))
+        return None
     return event
     
     
@@ -150,19 +154,23 @@ def create_alert(siemplify, event, logzio_event):
     siemplify.LOGGER.info("Processing siempify alert for logzio security event: {}".format(logzio_event["alertId"]))
     alert_info = AlertInfo()
     
-    alert_info.display_id = logzio_event["alertEventId"]
-    alert_info.ticket_id = logzio_event["alertEventId"]
-    alert_info.name = logzio_event["name"]
-    alert_info.rule_generator = logzio_event["alertSummary"]
-    alert_info.start_time = logzio_event["alertWindowStartDate"]
-    alert_info.end_time = logzio_event["alertWindowEndDate"]
-    alert_info.priority = SEVERITIES[logzio_event["severity"]]
-    alert_info.device_vendor = VENDOR
-    alert_info.device_product = PRODUCT
+    try:
+        alert_info.display_id = logzio_event["alertEventId"]
+        alert_info.ticket_id = logzio_event["alertEventId"]
+        alert_info.name = logzio_event["name"]
+        alert_info.rule_generator = logzio_event["alertSummary"]
+        alert_info.start_time = logzio_event["alertWindowStartDate"]
+        alert_info.end_time = logzio_event["alertWindowEndDate"]
+        alert_info.priority = SEVERITIES[logzio_event["severity"]]
+        alert_info.device_vendor = VENDOR
+        alert_info.device_product = PRODUCT
+    except Exception as e:
+        siemplify.LOGGER.error("Error occurred while trying to add event {} to alert: {}\n Dropping event.".format(logzio_event["alertEventId"], e))
+        alert_info = None
     
     siemplify.LOGGER.info("Creating siempify alert for logzio security event: {}".format(logzio_event["alertId"]))
     try:
-        if event is not None:
+        if alert_info is not None and event is not None:
             alert_info.events.append(event)
         siemplify.LOGGER.info("Added Event {} to Alert {}".format(logzio_event["alertEventId"], logzio_event["alertId"]))
     except Exception as e:
