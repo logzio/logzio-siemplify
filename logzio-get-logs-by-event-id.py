@@ -2,7 +2,9 @@ from SiemplifyAction import SiemplifyAction
 from SiemplifyUtils import unix_now, convert_unixtime_to_datetime, output_handler
 from ScriptResult import EXECUTION_STATE_COMPLETED, EXECUTION_STATE_FAILED,EXECUTION_STATE_TIMEDOUT
 
+import concurrent.futures
 import json
+import math
 import requests
 
 BASE_URL = "https://api.logz.io/"
@@ -25,7 +27,7 @@ def main():
     if logs_response is not None:
         logs_json, num_logs = create_json_result(siemplify, logs_response, logzio_token, logzio_region)
         if logs_json is not None:
-            siemplify.add_result_json(logs_json)
+            siemplify.result.add_result_json(logs_json)
             status = EXECUTION_STATE_COMPLETED
     
     output_message = get_output_msg(status, num_logs)
@@ -115,7 +117,7 @@ def collect_all_logs(siemplify, logs_response, api_token, logzio_region):
     total_results_available = int(logs_response["total"])
     current_page = int(logs_response["pagination"]["pageNumber"])
     num_pages = math.ceil(total_results_available/int(logs_response["pagination"]["pageSize"]))
-    siemplify.LOGGER.info("Request retrieved {} logs from Logz.io".format(num_collected_events))
+    siemplify.LOGGER.info("Request retrieved {} logs from Logz.io".format(num_collected_logs))
     siemplify.LOGGER.info("There are {} logs in your Logz.io account that match your alert-event-id".format(total_results_available))
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_pages) as executor:
         futures = []
