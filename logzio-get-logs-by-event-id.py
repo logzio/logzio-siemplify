@@ -105,6 +105,10 @@ def get_base_api_url(region):
 
 
 def create_json_result(siemplify, logs_response, logzio_token, logzio_region):
+    """
+    This function collects all the logs that are related to the event,
+    Returns the logs in json format, and the number of logs collected
+    """
     collected_logs = collect_all_logs(siemplify, logs_response, logzio_token, logzio_token)
     if collected_logs is not None and len(collected_logs) > 0:
         return json.dumps(collected_logs), len(collected_logs)
@@ -112,6 +116,10 @@ def create_json_result(siemplify, logs_response, logzio_token, logzio_region):
 
 
 def collect_all_logs(siemplify, logs_response, api_token, logzio_region):
+    """
+    If there are more results than those who the first response returned,
+    retrieveing the remaining logs.
+    """
     collected_logs = logs_response["results"]
     num_collected_logs = len(collected_logs)
     total_results_available = int(logs_response["total"])
@@ -139,6 +147,7 @@ def collect_all_logs(siemplify, logs_response, api_token, logzio_region):
 
 
 def get_output_msg(status, num_logs):
+    """ Returnes the output message in accordance to the script status """
     if status == EXECUTION_STATE_COMPLETED:
         return "Retrieved successfully {} logs that triggered the alert".format(num_logs)
     else:
