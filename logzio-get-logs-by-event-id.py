@@ -49,7 +49,7 @@ def execute_logzio_api(siemplify, api_token, logzio_region, page_number=1):
         if new_logs != None:
             return new_logs
     except Exception as e:
-        siemplify.LOGGER.error("Error occurred while fetching events from page {}: {}".format(page_number, e))
+        siemplify.LOGGER.error("Error occurred while fetching logs from page {}: {}".format(page_number, e))
     return None
 
 
@@ -138,10 +138,10 @@ def collect_all_logs(siemplify, logs_response, api_token, logzio_region):
             if new_log is not None:
                 collected_logs += new_log["results"]
                 num_collected_logs += len(new_log["results"])
-                siemplify.LOGGER.info("Fetched {} events".format(len(new_log["results"])))
+                siemplify.LOGGER.info("Fetched {} logs".format(len(new_log["results"])))
         
         if total_results_available != num_collected_logs:
-            siemplify.LOGGER.warn("Retrieved {} events out of {} available events. Only the retrieved events will be injected to Siemplify".format(num_collected_events, total_results_available))
+            siemplify.LOGGER.warn("Retrieved {} logs out of {} available logs. Only the retrieved logs will be injected to Siemplify".format(num_collected_events, total_results_available))
     siemplify.LOGGER.info("Total collected: {}".format(len(collected_logs)))
     return collected_logs
 
