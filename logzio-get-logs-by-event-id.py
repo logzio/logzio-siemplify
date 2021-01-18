@@ -1,5 +1,5 @@
 from SiemplifyAction import SiemplifyAction
-from SiemplifyUtils import unix_now, convert_unixtime_to_datetime, output_handler
+from SiemplifyUtils import output_handler
 from ScriptResult import EXECUTION_STATE_COMPLETED, EXECUTION_STATE_FAILED,EXECUTION_STATE_TIMEDOUT
 
 import concurrent.futures
