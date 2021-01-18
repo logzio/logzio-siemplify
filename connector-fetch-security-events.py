@@ -60,22 +60,9 @@ def create_request_body_obj(siemplify, page_number=1):
         request_body["filter"]["searchTerm"] = search_term
     if severities != None:
         request_body["filter"]["severities"] = [s.strip() for s in severities.split(",")]
-    if sort != None:
-        request_body["sort"] = get_sort_array(sort)
+    request_body["sort"] = [{"field": "DATE", "descending": False}]
     request_body["pagination"] = dict(pageNumber=page_number, pageSize=page_size)
     return request_body
-
-
-def get_sort_array(sort_str):
-    """ Creates the sort part of the request to Logz.io's API, from user input """
-    sort_arr = []
-    for sorting in sort_str.split(","):
-        sort = sorting.strip().split(":")
-        dict_obj = dict(field=sort[SORTING_FIELD_INDEX])
-        if len(sort) == 2:
-            dict_obj["descending"] = sort[SORTING_DESCENDING_INDEX]
-        sort_arr.append(dict_obj)
-    return sort_arr
 
 
 def get_base_api_url(region):
