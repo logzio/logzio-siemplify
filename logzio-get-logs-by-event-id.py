@@ -3,6 +3,7 @@ from SiemplifyUtils import output_handler
 from ScriptResult import EXECUTION_STATE_COMPLETED, EXECUTION_STATE_FAILED,EXECUTION_STATE_TIMEDOUT
 
 import concurrent.futures
+import datetime
 import json
 import math
 import requests
@@ -12,6 +13,7 @@ SEARCH_LOGS_API_SUFFIX = "v2/security/rules/events/logs/search"
 DEFAULT_PAGE_SIZE = 25
 MIN_PAGE_SIZE = 1
 MAX_PAGE_SIZE = 1000
+GENERAL_INSIGHT_TYPE = 0
 
 @output_handler
 def main():
@@ -25,6 +27,11 @@ def main():
     logzio_region = siemplify.extract_configuration_param('Logzio',"logzio_region", default_value="")
     logs_response = execute_logzio_api(siemplify, logzio_token, logzio_region)
     if logs_response is not None:
+        if len(logs_response["results"]) > 3:
+            add_insight(siemplify, logs_response["results"])
+        else:
+            for log in logs_response["results"]:
+                add_insight(siemplify, log)
         logs_json, num_logs = create_json_result(siemplify, logs_response, logzio_token, logzio_region)
         if logs_json is not None:
             siemplify.result.add_result_json(logs_json)
@@ -152,6 +159,24 @@ def get_output_msg(status, num_logs):
         return "Retrieved successfully {} logs that triggered the alert".format(num_logs)
     else:
         return "Failed to retrieve logs. Please check the script's logs to see what went wrong..."
+
+
+def add_insight(siemplify, log):
+    try:
+        alert_event_id = siemplify.extract_action_param("alert_event_id")
+        severity = 0#iemplify.extract_action_param("severity")
+        entity_id = ''.join([alert_event_id, datetime.datetime.now().strftime("%m%d%Y%H%M%S%f")])
+        log_json = json.dumps(log)
+        triggered_by = "Logzio" # Name of the integration
+        title = "Logs that triggered the event"
+        msg = log["message"]
+        is_created = siemplify.create_case_insight(triggered_by, title, log_json, entity_id, severity, GENERAL_INSIGHT_TYPE)
+        siemplify.LOGGER.info("returned value from create_case_insight: {}".format(is_created))
+        return is_created
+    except Exception as e:
+        siemplify.LOGGER.error("Error occurred while trying to create a case insight: {}".format(e))
+        # TODO: log some identifier about the log that will not be inseretd
+        return False
     
     
 if __name__ == "__main__":
