@@ -62,6 +62,7 @@ def create_request_body_obj(siemplify, page_number=1):
         request_body["filter"]["severities"] = [s.strip() for s in severities.split(",")]
     request_body["sort"] = [{"field": "DATE", "descending": False}]
     request_body["pagination"] = dict(pageNumber=page_number, pageSize=page_size)
+    siemplify.LOGGER.info("{}".format(request_body))
     return request_body
 
 
@@ -239,7 +240,11 @@ def get_dates(siemplify):
     if start_time == 0:
         # first run
         siemplify.LOGGER.info("No saved latest timestamp. Using user's input.")
-        start_time = siemplify.extract_connector_param("from_date", is_mandatory=True)
+        start_time_str = siemplify.extract_connector_param("from_date", is_mandatory=True)
+        if not start_time_str.isdigit():
+            start_time = datetime.datetime.timestamp(dateparser.parse(start_time_str, date_formats=['%Y-%m-%dT%H:%M:%S.%f'], settings={'TIMEZONE': 'UTC'}))
+        else:
+            start_time = start_time_str
     else:
         milliseconds_delta = datetime.timedelta(milliseconds=100)
         start_time = (datetime.datetime.fromtimestamp(start_time) + milliseconds_delta).timestamp()
