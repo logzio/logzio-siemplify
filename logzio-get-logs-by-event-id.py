@@ -53,11 +53,10 @@ def execute_logzio_api(siemplify, api_token, logzio_region, page_number=1):
         siemplify.LOGGER.info("Fetching page number {}".format(page_number))
         new_request = create_request_body_obj(siemplify, alert_event_id, page_number)
         new_logs = fetch_logs_by_event_id(api_token, new_request, logzio_region, siemplify, alert_event_id)
-        if new_logs != None:
-            return new_logs
+        return new_logs
     except Exception as e:
         siemplify.LOGGER.error("Error occurred while fetching logs from page {}: {}".format(page_number, e))
-    return None
+        return None
 
 
 def create_request_body_obj(siemplify, alert_event_id, page_number=1):
