@@ -27,14 +27,14 @@ def main():
         siemplify.LOGGER.error("Error occurred: no Logzio API token! Exiting.")
         raise ValueError
     logzio_region = siemplify.extract_configuration_param('Logzio',"logzio_region", default_value="")
-    query = siemplify.extract_action_param('query', input_type=str, is_mandatory=False)
+    query = siemplify.extract_action_param('query', input_type=str, is_mandatory=False, default_value='*')
     size = get_validated_size(siemplify)
     from_time = get_time_in_unix(siemplify, 'from_time')
     to_time = get_time_in_unix(siemplify, 'to_time')
     logs_response = execute_logzio_api(siemplify, logzio_token, logzio_region, query, size, from_time, to_time)
     if logs_response is not None:
         # logs_json, num_logs = create_json_result(siemplify, logs_response, logzio_token, logzio_region)
-        logs_json = json.dumps(logs_response["hits"]["hits"])
+        logs_json = get_logs_values(siemplify, logs_response["hits"]["hits"])# json.dumps(logs_response["hits"]["hits"])
         if logs_json is not None:
             siemplify.LOGGER.info("Retrieved {} logs that match the query".format(len(logs_response["hits"]["hits"])))
             siemplify.result.add_result_json(logs_json)
@@ -212,6 +212,15 @@ def get_time_in_unix(siemplify, param_name):
                 return None
     return time_input
     
+
+def get_logs_values(siemplify, logs):
+    logs_results = {"results": []}
+    for log in logs:
+        logs_results["results"].append(log["_source"])
+    
+    if len(logs_results) > 0:
+        return json.dumps(logs_results)
+    return None
     
 if __name__ == "__main__":
     main()
