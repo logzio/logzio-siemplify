@@ -1,11 +1,9 @@
 from SiemplifyAction import SiemplifyAction
-from SiemplifyUtils import unix_now, convert_unixtime_to_datetime, output_handler
-from ScriptResult import EXECUTION_STATE_COMPLETED, EXECUTION_STATE_FAILED,EXECUTION_STATE_TIMEDOUT
+from SiemplifyUtils import output_handler
+from ScriptResult import EXECUTION_STATE_COMPLETED, EXECUTION_STATE_FAILED
 from datetime import datetime
 
-# import concurrent.futures
 import dateparser
-# import datetime
 import time
 import json
 import math
@@ -33,8 +31,7 @@ def main():
     to_time = get_time_in_unix(siemplify, 'to_time')
     logs_response = execute_logzio_api(siemplify, logzio_token, logzio_region, query, size, from_time, to_time)
     if logs_response is not None:
-        # logs_json, num_logs = create_json_result(siemplify, logs_response, logzio_token, logzio_region)
-        logs_json = get_logs_values(siemplify, logs_response["hits"]["hits"])# json.dumps(logs_response["hits"]["hits"])
+        logs_json = get_logs_values(siemplify, logs_response["hits"]["hits"])
         if logs_json is not None:
             siemplify.LOGGER.info("Retrieved {} logs that match the query".format(len(logs_response["hits"]["hits"])))
             siemplify.result.add_result_json(logs_json)
@@ -58,7 +55,7 @@ def execute_logzio_api(siemplify, api_token, logzio_region, query, size, from_ti
 
 
 def create_request_body_obj(siemplify, query, size, from_time, to_time):
-    """ Creates request to send to Logz.io API """
+    """ Creates request body to send to Logz.io API """
     request_body = {
         "query": {
             "bool": {
@@ -91,7 +88,7 @@ def create_request_body_obj(siemplify, query, size, from_time, to_time):
     
 def search_logs(api_token, req_body, region, siemplify):
     """
-    Returnes from Logz.io all the logs that triggered the event.
+    Returnes from Logz.io all the logs that match the query.
     If error occured or no results found, returnes None
     """
     headers = {
@@ -113,9 +110,9 @@ def search_logs(api_token, req_body, region, siemplify):
             siemplify.LOGGER.warn("No resultes found to match your request")
             return None
         else:
-            siemplify.LOGGER.error("API request returned {}".format(response.status_code))
+            siemplify.LOGGER.warn("API request returned {}".format(response.status_code))
     except Exception as e:
-        siemplify.LOGGER.error("Error occurred while searching & fetching from Logz.io:\n{}".format(e))
+        siemplify.LOGGER.error("Error occurred while searching & fetching logs from Logz.io:\n{}".format(e))
         return None
         
 
@@ -127,48 +124,6 @@ def get_base_api_url(region):
         return BASE_URL.replace("api.", "api-{}.".format(region))
 
 
-# def create_json_result(siemplify, logs_response, logzio_token, logzio_region):
-#     """
-#     This function collects all the logs that are related to the event,
-#     Returns the logs in json format, and the number of logs collected
-#     """
-#     collected_logs = collect_all_logs(siemplify, logs_response, logzio_token, logzio_token)
-#     if collected_logs is not None and len(collected_logs) > 0:
-#         return json.dumps(collected_logs), len(collected_logs)
-#     return None
-
-
-# def collect_all_logs(siemplify, logs_response, api_token, logzio_region):
-#     """
-#     If there are more results than those who the first response returned,
-#     retrieveing the remaining logs.
-#     """
-#     collected_logs = logs_response["results"]
-#     num_collected_logs = len(collected_logs)
-#     total_results_available = int(logs_response["total"])
-#     current_page = int(logs_response["pagination"]["pageNumber"])
-#     num_pages = math.ceil(total_results_available/int(logs_response["pagination"]["pageSize"]))
-#     siemplify.LOGGER.info("Request retrieved {} logs from Logz.io".format(num_collected_logs))
-#     siemplify.LOGGER.info("There are {} logs in your Logz.io account that match your alert-event-id".format(total_results_available))
-#     with concurrent.futures.ThreadPoolExecutor(max_workers=num_pages) as executor:
-#         futures = []
-#         while num_pages > current_page:
-#             current_page += 1
-#             print("fetching page: {}".format(current_page))
-#             futures.append(executor.submit(execute_logzio_api, siemplify, api_token, logzio_region, current_page))
-#         for future in concurrent.futures.as_completed(futures):
-#             new_log = future.result()
-#             if new_log is not None:
-#                 collected_logs += new_log["results"]
-#                 num_collected_logs += len(new_log["results"])
-#                 siemplify.LOGGER.info("Fetched {} events".format(len(new_log["results"])))
-        
-#         if total_results_available != num_collected_logs:
-#             siemplify.LOGGER.warn("Retrieved {} events out of {} available events. Only the retrieved events will be injected to Siemplify".format(num_collected_events, total_results_available))
-#     siemplify.LOGGER.info("Total collected: {}".format(len(collected_logs)))
-#     return collected_logs
-
-
 def get_output_msg(status, num_logs):
     """ Returnes the output message in accordance to the script status """
     if status == EXECUTION_STATE_COMPLETED:
@@ -178,6 +133,10 @@ def get_output_msg(status, num_logs):
     
     
 def get_validated_size(siemplify):
+    """
+    Validates and returnes the size param for the query.
+    If value is not valid reverts to default size.
+    """
     size = siemplify.extract_action_param('size', input_type=str, is_mandatory=False)
     if size is None or size == "":
         siemplify.LOGGER.info("No size entered. Using default value: {}".format(MAX_PAGE_SIZE))
@@ -196,6 +155,7 @@ def get_validated_size(siemplify):
     
 
 def get_time_in_unix(siemplify, param_name):
+    """ Converts the time the user inserts to unix time """
     time_input = siemplify.extract_action_param(param_name)
     if time_input is not None and time_input != "":
         if time_input.isdigit():
@@ -214,6 +174,10 @@ def get_time_in_unix(siemplify, param_name):
     
 
 def get_logs_values(siemplify, logs):
+    """
+    Extracts the logs from the Logz.io API response, and formats
+    them for the output json.
+    """
     logs_results = {"results": []}
     for log in logs:
         logs_results["results"].append(log["_source"])

@@ -1,8 +1,21 @@
 from SiemplifyAction import SiemplifyAction
-from SiemplifyUtils import unix_now, convert_unixtime_to_datetime, output_handler
+from SiemplifyUtils import output_handler
 from ScriptResult import EXECUTION_STATE_COMPLETED, EXECUTION_STATE_FAILED
 
 import json
+
+"""
+This adapter is suitable for jsons in the following format:
+{
+    "results": [
+        { 
+            "key1": "x",
+            "key2": "y"
+        },
+        .....
+    ]
+}
+"""
 
 @output_handler
 def main():
