@@ -20,7 +20,7 @@ def main():
     siemplify = SiemplifyAction()
     status = EXECUTION_STATE_FAILED # default. will be changed only if logs retrieved and parsed to json successfully.
     num_logs = 0
-    logzio_token = siemplify.extract_configuration_param('Logzio',"logzio_token", default_value="-", is_mandatory=True)
+    logzio_token = siemplify.extract_configuration_param('Logzio',"logzio_security_token", default_value="-", is_mandatory=True)
     if logzio_token == "-" or logzio_token == "":
         siemplify.LOGGER.error("Error occurred: no Logzio API token! Exiting.")
         raise ValueError
