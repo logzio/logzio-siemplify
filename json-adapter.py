@@ -23,7 +23,7 @@ def main():
 
     search_fields = siemplify.extract_action_param("fields_to_search")
     raw_json = siemplify.extract_action_param("raw_json")
-    output = []
+    output = { "results": [] }
     status = EXECUTION_STATE_FAILED # default value. Will considered success only if found values
     is_success = False
     
@@ -37,11 +37,13 @@ def main():
                 for field in fields:
                     siemplify.LOGGER.info("Searching field: {}".format(field))
                     if field in result:
-                        output.append({field: result[field]})
+                        result_parse = { "entityType": field, "entityIdentifier": result[field] }
+                        output["results"].append(result_parse)
                     else:
                         siemplify.LOGGER.info("Couldn't find field {} in given json".format(field))
         
-        siemplify.LOGGER.info("Found {} out of given {} fields".format(len(output), len(fields)))
+        siemplify.LOGGER.info("Found {} out of given {} fields".format(len(output["results"]), len(fields)))
+        siemplify.LOGGER.info("{}".format(output))
         
         if len(output) > 0:
             output_json = json.dumps(output)
