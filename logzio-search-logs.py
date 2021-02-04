@@ -31,6 +31,7 @@ def main():
     to_time = get_time_in_unix(siemplify, 'to_time')
     logs_response = execute_logzio_api(siemplify, logzio_token, logzio_region, query, size, from_time, to_time)
     if logs_response is not None:
+        num_logs = len(logs_response["hits"]["hits"])
         logs_json = get_logs_values(siemplify, logs_response["hits"]["hits"])
         if logs_json is not None:
             siemplify.LOGGER.info("Retrieved {} logs that match the query".format(len(logs_response["hits"]["hits"])))
@@ -105,9 +106,8 @@ def search_logs(api_token, req_body, region, siemplify):
         siemplify.LOGGER.info("Status code from Logz.io: {}".format(response.status_code))
         if response.status_code == 200:
             logs_response = json.loads(response.content)
-            if logs_response["hits"]["total"] > 0:
+            if logs_response["hits"]["total"] >= 0:
                 return logs_response
-            siemplify.LOGGER.warn("No resultes found to match your request")
             return None
         else:
             siemplify.LOGGER.warn("API request returned {}".format(response.status_code))
@@ -127,6 +127,8 @@ def get_base_api_url(region):
 def get_output_msg(status, num_logs):
     """ Returnes the output message in accordance to the script status """
     if status == EXECUTION_STATE_COMPLETED:
+        if num_logs == 0:
+            return "API call ended successfully with no logs to match the query"
         return "Retrieved successfully {} logs that triggered the alert".format(num_logs)
     else:
         return "Failed to retrieve logs. Please check the script's logs to see what went wrong..."
