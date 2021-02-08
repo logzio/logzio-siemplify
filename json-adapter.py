@@ -45,20 +45,20 @@ def main():
         siemplify.LOGGER.info("Found {} out of given {} fields".format(len(output["results"]), len(fields)))
         siemplify.LOGGER.info("{}".format(output))
         
-        if len(output) > 0:
+        if len(output["results"]) > 0:
             output_json = json.dumps(output)
             siemplify.result.add_result_json(output_json)
             status = EXECUTION_STATE_COMPLETED
             is_success = True
             
     except Exception as e:
-        siemplify.LOGGER.error("Error occurred while searching fields in json: {}\n Exiting json adapter".format(e))
+        siemplify.LOGGER.error("Error occurred while searching fields in json: {}".format(e))
         
-    output_message = get_output_by_status(status)
+    output_message = get_output_by_status(status, len(output["results"]))
     siemplify.end(output_message, is_success, status)
 
 
-def get_output_by_status(status):
+def get_output_by_status(status, num_results):
     if status == EXECUTION_STATE_COMPLETED:
         return "Json adapter script finished successfully with results"
     else:
