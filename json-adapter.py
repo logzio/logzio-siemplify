@@ -9,8 +9,8 @@ This adapter is suitable for jsons in the following format:
 {
     "results": [
         { 
-            "key1": "x",
-            "key2": "y"
+            "entityType": "field_from_json",
+            "entityIdentifier": "value_from_json"
         },
         .....
     ]

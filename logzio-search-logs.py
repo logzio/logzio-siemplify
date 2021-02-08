@@ -15,6 +15,15 @@ DEFAULT_PAGE_SIZE = 25
 MIN_PAGE_SIZE = 1
 MAX_PAGE_SIZE = 1000
 
+"""
+If this action succeeds, it will return a json in the following format:
+{
+    "results": [
+        # logs
+    ]
+}
+"""
+
 @output_handler
 def main():
     siemplify = SiemplifyAction()

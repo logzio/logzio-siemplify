@@ -163,7 +163,7 @@ def get_output_msg(status, num_logs):
 def add_insight(siemplify, log):
     try:
         alert_event_id = siemplify.extract_action_param("alert_event_id")
-        severity = 0#iemplify.extract_action_param("severity")
+        severity = 0
         entity_id = ''.join([alert_event_id, datetime.datetime.now().strftime("%m%d%Y%H%M%S%f")])
         log_json = json.dumps(log)
         triggered_by = "Logzio" # Name of the integration
@@ -174,7 +174,6 @@ def add_insight(siemplify, log):
         return is_created
     except Exception as e:
         siemplify.LOGGER.error("Error occurred while trying to create a case insight: {}".format(e))
-        # TODO: log some identifier about the log that will not be inseretd
         return False
     
     
