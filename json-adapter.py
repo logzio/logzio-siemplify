@@ -15,6 +15,8 @@ This adapter is suitable for jsons in the following format:
         .....
     ]
 }
+
+This action will return EXECUTION_STATE_COMPLETED only when a requested field was found.
 """
 
 @output_handler
