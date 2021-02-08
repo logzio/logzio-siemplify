@@ -9,6 +9,16 @@ This adapter is suitable for jsons in the following format:
 {
     "results": [
         { 
+            #log
+        },
+        .....
+    ]
+}
+
+and returns a json in the following format: 
+{
+    "results": [
+        { 
             "entityType": "field_from_json",
             "entityIdentifier": "value_from_json"
         },
