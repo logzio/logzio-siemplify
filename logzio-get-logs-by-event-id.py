@@ -1,12 +1,21 @@
 from SiemplifyAction import SiemplifyAction
 from SiemplifyUtils import output_handler
-from ScriptResult import EXECUTION_STATE_COMPLETED, EXECUTION_STATE_FAILED,EXECUTION_STATE_TIMEDOUT
+from ScriptResult import EXECUTION_STATE_COMPLETED, EXECUTION_STATE_FAILED
 
 import concurrent.futures
 import datetime
 import json
 import math
 import requests
+
+"""
+If this action succeeds, it will return a json in the following format, to match the json-adapter format:
+{
+    "results": [
+        # logs
+    ]
+}
+"""
 
 BASE_URL = "https://api.logz.io/"
 SEARCH_LOGS_API_SUFFIX = "v2/security/rules/events/logs/search"
@@ -27,15 +36,12 @@ def main():
     logzio_region = siemplify.extract_configuration_param('Logzio',"logzio_region", default_value="")
     logs_response = execute_logzio_api(siemplify, logzio_token, logzio_region)
     if logs_response is not None:
-        if len(logs_response["results"]) > 3:
-            add_insight(siemplify, logs_response["results"])
-        else:
-            for log in logs_response["results"]:
-                add_insight(siemplify, log)
         logs_json, num_logs = create_json_result(siemplify, logs_response, logzio_token, logzio_region)
         if logs_json is not None:
             siemplify.result.add_result_json(logs_json)
             status = EXECUTION_STATE_COMPLETED
+            add_insights(siemplify, logs_json)
+            
     
     output_message = get_output_msg(status, num_logs)
     is_success = status == EXECUTION_STATE_COMPLETED
@@ -91,7 +97,7 @@ def fetch_logs_by_event_id(api_token, req_body, region, siemplify, alert_event_i
         siemplify.LOGGER.info("Status code from Logz.io: {}".format(response.status_code))
         if response.status_code == 200:
             logs_response = json.loads(response.content)
-            if logs_response["total"] > 0:
+            if logs_response["total"] >= 0:
                 return logs_response
             siemplify.LOGGER.warn("No resultes found to match your request")
             return None
@@ -116,8 +122,8 @@ def create_json_result(siemplify, logs_response, logzio_token, logzio_region):
     Returns the logs in json format, and the number of logs collected
     """
     collected_logs = collect_all_logs(siemplify, logs_response, logzio_token, logzio_token)
-    if collected_logs is not None and len(collected_logs) > 0:
-        return json.dumps(collected_logs), len(collected_logs)
+    if collected_logs is not None and len(collected_logs) >= 0:
+        return json.dumps({"results": collected_logs}), len(collected_logs)
     return None
 
 
@@ -160,6 +166,18 @@ def get_output_msg(status, num_logs):
         return "Failed to retrieve logs. Please check the script's logs to see what went wrong..."
 
 
+def add_insights(siemplify, logs_json):
+    try:
+        logs = json.loads(logs_json)
+        if len(logs["results"]) > 3:
+            add_insight(siemplify, logs["results"])
+        else:
+            for log in logs["results"]:
+                add_insight(siemplify, log)
+    except Exceptions as e:
+        siemplify.LOGGER.error("Error occured while trying to create insights:\n{}".format(e))
+
+
 def add_insight(siemplify, log):
     try:
         alert_event_id = siemplify.extract_action_param("alert_event_id")
@@ -175,7 +193,7 @@ def add_insight(siemplify, log):
     except Exception as e:
         siemplify.LOGGER.error("Error occurred while trying to create a case insight: {}".format(e))
         return False
-    
+
     
 if __name__ == "__main__":
     main()
