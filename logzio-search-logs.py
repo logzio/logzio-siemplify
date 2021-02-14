@@ -41,7 +41,7 @@ def main():
     logs_response = execute_logzio_api(siemplify, logzio_token, logzio_region, query, size, from_time, to_time)
     if logs_response is not None:
         num_logs = len(logs_response["hits"]["hits"])
-        logs_json = get_logs_values(siemplify, logs_response["hits"]["hits"])
+        logs_json = get_logs_values(logs_response["hits"]["hits"])
         if logs_json is not None:
             siemplify.LOGGER.info("Retrieved {} logs that match the query".format(len(logs_response["hits"]["hits"])))
             siemplify.result.add_result_json(logs_json)
@@ -56,7 +56,7 @@ def main():
 def execute_logzio_api(siemplify, api_token, logzio_region, query, size, from_time, to_time):
     """ Sends request to Logz.io and returnes the response, if applicable """
     try:
-        new_request = create_request_body_obj(siemplify, query, size, from_time, to_time)
+        new_request = create_request_body_obj(query, size, from_time, to_time)
         new_logs = search_logs(api_token, new_request, logzio_region, siemplify)
         return new_logs
     except Exception as e:
@@ -64,7 +64,7 @@ def execute_logzio_api(siemplify, api_token, logzio_region, query, size, from_ti
         return None
 
 
-def create_request_body_obj(siemplify, query, size, from_time, to_time):
+def create_request_body_obj(query, size, from_time, to_time):
     """ Creates request body to send to Logz.io API """
     request_body = {
         "query": {
@@ -184,7 +184,7 @@ def get_time_in_unix(siemplify, param_name):
     return time_input
     
 
-def get_logs_values(siemplify, logs):
+def get_logs_values(logs):
     """
     Extracts the logs from the Logz.io API response, and formats
     them for the output json.

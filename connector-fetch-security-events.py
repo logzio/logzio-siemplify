@@ -34,10 +34,10 @@ def main():
         siemplify.LOGGER.error("Error occurred: no Logzio API token! Exiting.")
         raise ValueError
     logzio_region = siemplify.extract_connector_param("logzio_region", is_mandatory=False, default_value="")
-    
-    events_response = execute_logzio_api(siemplify, logzio_api_token, logzio_region)
+    url = get_logzio_api_endpoint(siemplify, logzio_region)
+    events_response = execute_logzio_api(siemplify, logzio_api_token, url)
     if events_response is not None:
-        alerts = create_alerts_array(siemplify, events_response, logzio_api_token, logzio_region)
+        alerts = create_alerts_array(siemplify, events_response, logzio_api_token, url)
 
     siemplify.LOGGER.info("Total {} alerts will be returned to Siemplify".format(len(alerts)))
     siemplify.return_package(alerts)
@@ -49,7 +49,6 @@ def create_request_body_obj(siemplify, page_number=1):
     from_date, to_date = get_dates(siemplify)
     search_term = siemplify.extract_connector_param("search_term", is_mandatory=False)
     severities = siemplify.extract_connector_param("severities", is_mandatory=False)
-    sort = siemplify.extract_connector_param("sort", is_mandatory=False)
     page_size = siemplify.extract_connector_param("page_size", is_mandatory=False, default_value=DEFAULT_PAGE_SIZE, input_type=int)
     if page_size < MIN_PAGE_SIZE or page_size > MAX_PAGE_SIZE:
         siemplify.LOGGER.warn("Invalid page size. Should be betwwen {} and {}. Reverting to default page size: {}".format(MIN_PAGE_SIZE, MAX_PAGE_SIZE, DEFAULT_PAGE_SIZE))
@@ -74,7 +73,7 @@ def get_base_api_url(region):
         return BASE_URL.replace("api.", "api-{}.".format(region))
 
 
-def fetch_security_events(api_token, req_body, region, siemplify):
+def fetch_security_events(api_token, req_body, url, siemplify):
     """
     Returnes security events from Logz.io.
     If error occured or no results found, returnes None
@@ -83,8 +82,7 @@ def fetch_security_events(api_token, req_body, region, siemplify):
         'Content-Type': 'application/json',
         'X-API-TOKEN': api_token
     }
-
-    url = get_base_api_url(region) + TRIGGERED_RULES_API_SUFFIX
+    
     siemplify.LOGGER.info("api url: {}".format(url))
     try:
         body = json.dumps(req_body)
@@ -168,7 +166,7 @@ def create_alert(siemplify, event, logzio_event):
     return alert_info
     
 
-def create_alerts_array(siemplify, events_response, api_token, logzio_region):
+def create_alerts_array(siemplify, events_response, api_token, url):
     """
     Returns the alerts that will be injected to Siemplify.
     If a query has more results than the page size, the function will request all the relevant
@@ -187,7 +185,7 @@ def create_alerts_array(siemplify, events_response, api_token, logzio_region):
         while num_pages > current_page:
             current_page += 1
             print("fetching page: {}".format(current_page))
-            futures.append(executor.submit(execute_logzio_api, siemplify, api_token, logzio_region, current_page))
+            futures.append(executor.submit(execute_logzio_api, siemplify, api_token, url, current_page))
         for future in concurrent.futures.as_completed(futures):
             new_event = future.result()
             if new_event is not None:
@@ -215,13 +213,13 @@ def create_alerts_array(siemplify, events_response, api_token, logzio_region):
     return alerts
 
 
-def execute_logzio_api(siemplify, api_token, logzio_region, page_number=1):
+def execute_logzio_api(siemplify, api_token, url, page_number=1):
     """ Sends request for security events to Logz.io and returnes the response, if applicable """
     try:
         siemplify.LOGGER.info("Fetching page number {}".format(page_number))
         new_request = create_request_body_obj(siemplify, page_number)
-        new_events = fetch_security_events(api_token, new_request, logzio_region, siemplify)
-        if new_events != None:
+        new_events = fetch_security_events(api_token, new_request, url, siemplify)
+        if new_events is not None:
             return new_events
     except Exception as e:
         siemplify.LOGGER.error("Error occurred while fetching events from page {}: {}".format(page_number, e))
@@ -265,6 +263,19 @@ def save_latest_timestamp(siemplify, latest_timestamp_from_events):
     latest = max(latest_timestamp_from_events, int(hour_ago))
     siemplify.LOGGER.info("Latest timestamp to save: {}".format(latest))
     siemplify.save_timestamp(new_timestamp=latest)
+    
+
+def get_logzio_api_endpoint(siemplify, region):
+    """
+    Returns the endpoint of Logz.io API.
+    Prioritizing a custom endoint, if entered.
+    If not, falling back to the regaular enspoints, based on the logzio_region (defaults to us).
+    """
+    custom_endpoint = siemplify.extract_connector_param("logzio_custom_endpoint", is_mandatory=False, default_value="")
+    if custom_endpoint is not None and custom_endpoint != "":
+        siemplify.LOGGER.info("Using custom endpoint: {}".format(custom_endpoint))
+        return custom_endpoint
+    return get_base_api_url(region) + TRIGGERED_RULES_API_SUFFIX
         
         
 if __name__ == "__main__":

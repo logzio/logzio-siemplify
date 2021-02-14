@@ -6,6 +6,7 @@
 - **from_date**: (mandatory) Start time to search security events.
 Can be either in Unix time format, or in the format "%Y-%m-%d %H:%M:%S.%f". Will only be applicable for the connector's first run.
 - **logzio_region**: Your Logzio's account region. Can be left empty for US region.
+- **logzio_custom_endpoint**: Custom endpoint for Logz.io API. Will override the logzio_region param.
 - **page_size**: Controls the number of results per page. Valid inputs are 1 to 1000. Defaults to 25.
 - **search_term**: Filter for a matching string in the security rule name.
 - **severities**: A comma-delimited list of security rules severities: "INFO", "LOW", "MEDIUM", "HIGH", "SEVERE".

@@ -121,7 +121,7 @@ def create_json_result(siemplify, logs_response, logzio_token, logzio_region):
     This function collects all the logs that are related to the event,
     Returns the logs in json format, and the number of logs collected
     """
-    collected_logs = collect_all_logs(siemplify, logs_response, logzio_token, logzio_token)
+    collected_logs = collect_all_logs(siemplify, logs_response, logzio_token, logzio_region)
     if collected_logs is not None and len(collected_logs) >= 0:
         return json.dumps({"results": collected_logs}), len(collected_logs)
     return None
