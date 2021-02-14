@@ -57,7 +57,7 @@ def ping_api(siemplify, logzio_region, token):
     Creates a request to Logz.io API.
     If request is valid, returnes True, otherwise raises a ConnectionError.
     """
-    url = get_base_api_url(logzio_region) + WHOAMI_API_SUFFIX
+    url = get_logzio_api_endpoint(siemplify, logzio_region)
     headers = {
         'Content-Type': 'application/json',
         'X-API-TOKEN': token
@@ -93,6 +93,19 @@ def create_output_msg(status):
         return "Tokens are valid, ping successful."
     else:
         return "Error occurred while trying to validate tokens or ping Logz.io API"
+        
+
+def get_logzio_api_endpoint(siemplify, region):
+    """
+    Returns the endpoint of Logz.io API.
+    Prioritizing a custom endoint, if entered.
+    If not, falling back to the regaular enspoints, based on the logzio_region (defaults to us).
+    """
+    custom_endpoint = siemplify.extract_action_param("logzio_custom_endpoint", is_mandatory=False, default_value="")
+    if custom_endpoint is not None and custom_endpoint != "":
+        siemplify.LOGGER.info("Using custom endpoint: {}".format(custom_endpoint))
+        return custom_endpoint
+    return get_base_api_url(region) + WHOAMI_API_SUFFIX
 
 if __name__ == "__main__":
     main()

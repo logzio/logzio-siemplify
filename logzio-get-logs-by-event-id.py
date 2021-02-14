@@ -34,9 +34,10 @@ def main():
         siemplify.LOGGER.error("Error occurred: no Logzio API token! Exiting.")
         raise ValueError
     logzio_region = siemplify.extract_configuration_param('Logzio',"logzio_region", default_value="")
-    logs_response = execute_logzio_api(siemplify, logzio_token, logzio_region)
+    url = get_logzio_api_endpoint(siemplify, logzio_region)
+    logs_response = execute_logzio_api(siemplify, logzio_token, url)
     if logs_response is not None:
-        logs_json, num_logs = create_json_result(siemplify, logs_response, logzio_token, logzio_region)
+        logs_json, num_logs = create_json_result(siemplify, logs_response, logzio_token, url)
         if logs_json is not None:
             siemplify.result.add_result_json(logs_json)
             status = EXECUTION_STATE_COMPLETED
@@ -49,7 +50,7 @@ def main():
     
     
     
-def execute_logzio_api(siemplify, api_token, logzio_region, page_number=1):
+def execute_logzio_api(siemplify, api_token, url, page_number=1):
     """ Sends request to Logz.io and returnes the response, if applicable """
     alert_event_id = siemplify.extract_action_param("alert_event_id", default_value="", is_mandatory=True, print_value=True)
     if alert_event_id == "":
@@ -58,7 +59,7 @@ def execute_logzio_api(siemplify, api_token, logzio_region, page_number=1):
     try:
         siemplify.LOGGER.info("Fetching page number {}".format(page_number))
         new_request = create_request_body_obj(siemplify, alert_event_id, page_number)
-        new_logs = fetch_logs_by_event_id(api_token, new_request, logzio_region, siemplify, alert_event_id)
+        new_logs = fetch_logs_by_event_id(api_token, new_request, url, siemplify, alert_event_id)
         return new_logs
     except Exception as e:
         siemplify.LOGGER.error("Error occurred while fetching logs from page {}: {}".format(page_number, e))
@@ -78,7 +79,7 @@ def create_request_body_obj(siemplify, alert_event_id, page_number=1):
     return request_body
     
     
-def fetch_logs_by_event_id(api_token, req_body, region, siemplify, alert_event_id):
+def fetch_logs_by_event_id(api_token, req_body, url, siemplify, alert_event_id):
     """
     Returnes from Logz.io all the logs that triggered the event.
     If error occured or no results found, returnes None
@@ -88,7 +89,6 @@ def fetch_logs_by_event_id(api_token, req_body, region, siemplify, alert_event_i
         'X-API-TOKEN': api_token
     }
 
-    url = get_base_api_url(region) + SEARCH_LOGS_API_SUFFIX
     siemplify.LOGGER.info("api url: {}".format(url))
     try:
         body = json.dumps(req_body)
@@ -116,18 +116,18 @@ def get_base_api_url(region):
         return BASE_URL.replace("api.", "api-{}.".format(region))
 
 
-def create_json_result(siemplify, logs_response, logzio_token, logzio_region):
+def create_json_result(siemplify, logs_response, logzio_token, url):
     """
     This function collects all the logs that are related to the event,
     Returns the logs in json format, and the number of logs collected
     """
-    collected_logs = collect_all_logs(siemplify, logs_response, logzio_token, logzio_region)
+    collected_logs = collect_all_logs(siemplify, logs_response, logzio_token, url)
     if collected_logs is not None and len(collected_logs) >= 0:
         return json.dumps({"results": collected_logs}), len(collected_logs)
     return None
 
 
-def collect_all_logs(siemplify, logs_response, api_token, logzio_region):
+def collect_all_logs(siemplify, logs_response, api_token, url):
     """
     If there are more results than those who the first response returned,
     retrieveing the remaining logs.
@@ -144,7 +144,7 @@ def collect_all_logs(siemplify, logs_response, api_token, logzio_region):
         while num_pages > current_page:
             current_page += 1
             print("fetching page: {}".format(current_page))
-            futures.append(executor.submit(execute_logzio_api, siemplify, api_token, logzio_region, current_page))
+            futures.append(executor.submit(execute_logzio_api, siemplify, api_token, url, current_page))
         for future in concurrent.futures.as_completed(futures):
             new_log = future.result()
             if new_log is not None:
@@ -193,6 +193,19 @@ def add_insight(siemplify, log):
     except Exception as e:
         siemplify.LOGGER.error("Error occurred while trying to create a case insight: {}".format(e))
         return False
+
+
+def get_logzio_api_endpoint(siemplify, region):
+    """
+    Returns the endpoint of Logz.io API.
+    Prioritizing a custom endoint, if entered.
+    If not, falling back to the regaular enspoints, based on the logzio_region (defaults to us).
+    """
+    custom_endpoint = siemplify.extract_action_param("logzio_custom_endpoint", is_mandatory=False, default_value="")
+    if custom_endpoint is not None and custom_endpoint != "":
+        siemplify.LOGGER.info("Using custom endpoint: {}".format(custom_endpoint))
+        return custom_endpoint
+    return get_base_api_url(region) + SEARCH_LOGS_API_SUFFIX
 
     
 if __name__ == "__main__":

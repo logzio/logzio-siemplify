@@ -106,7 +106,7 @@ def search_logs(api_token, req_body, region, siemplify):
         'X-API-TOKEN': api_token
     }
 
-    url = get_base_api_url(region) + SEARCH_LOGS_API_SUFFIX
+    url = get_logzio_api_endpoint(siemplify, region) # get_base_api_url(region) + SEARCH_LOGS_API_SUFFIX
     siemplify.LOGGER.info("api url: {}".format(url))
     try:
         body = json.dumps(req_body)
@@ -196,6 +196,20 @@ def get_logs_values(logs):
     if len(logs_results) > 0:
         return json.dumps(logs_results)
     return None
+    
+
+def get_logzio_api_endpoint(siemplify, region):
+    """
+    Returns the endpoint of Logz.io API.
+    Prioritizing a custom endoint, if entered.
+    If not, falling back to the regaular enspoints, based on the logzio_region (defaults to us).
+    """
+    custom_endpoint = siemplify.extract_action_param("logzio_custom_endpoint", is_mandatory=False, default_value="")
+    if custom_endpoint is not None and custom_endpoint != "":
+        siemplify.LOGGER.info("Using custom endpoint: {}".format(custom_endpoint))
+        return custom_endpoint
+    return get_base_api_url(region) + SEARCH_LOGS_API_SUFFIX
+
     
 if __name__ == "__main__":
     main()
