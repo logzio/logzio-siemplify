@@ -22,7 +22,6 @@ It saves the latest timestamp (max between latest log timestamp and 1 hour ago) 
 **Input:**
 - **alert_event_id**: (mandatory) event id you'd like to search logs for.
 - **page_size**: Controls the number of results per page. Valid inputs are 1 to 1000. Defaults to 25.
-- **logzio_custom_endpoint**: Optional. If you need to override regular endpoint.
 
 **Output:**
 Returns logs that triggered the event, in the format that the API returns.
@@ -92,5 +91,11 @@ This action searches for the fields in the json and returns it in the format abo
 ### `ping.py`:
 This action validates the integrations inputs.
 It sends requests to the whoami API to validate the API and the tokens. For testing only.
-**Input:**:
-- **logzio_custom_endpoint**: Optional. If you need to override regular endpoint.
+
+
+### General integration inputs:
+General inputs applies only for the actions. Connector has it's own params.
+- logzio_operation_token - mendatory
+- logzio_security_token - mendatory
+- logzio_region
+- logzio_custom_endpoint

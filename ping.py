@@ -101,10 +101,10 @@ def get_logzio_api_endpoint(siemplify, region):
     Prioritizing a custom endoint, if entered.
     If not, falling back to the regaular enspoints, based on the logzio_region (defaults to us).
     """
-    custom_endpoint = siemplify.extract_action_param("logzio_custom_endpoint", is_mandatory=False, default_value="")
+    custom_endpoint = siemplify.extract_configuration_param("Logzio", "logzio_custom_endpoint", is_mandatory=False, default_value="")
     if custom_endpoint is not None and custom_endpoint != "":
         siemplify.LOGGER.info("Using custom endpoint: {}".format(custom_endpoint))
-        return custom_endpoint
+        return custom_endpoint + WHOAMI_API_SUFFIX
     return get_base_api_url(region) + WHOAMI_API_SUFFIX
 
 if __name__ == "__main__":
