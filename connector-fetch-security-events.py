@@ -274,7 +274,7 @@ def get_logzio_api_endpoint(siemplify, region):
     custom_endpoint = siemplify.extract_connector_param("logzio_custom_endpoint", is_mandatory=False, default_value="")
     if custom_endpoint is not None and custom_endpoint != "":
         siemplify.LOGGER.info("Using custom endpoint: {}".format(custom_endpoint))
-        return custom_endpoint
+        return custom_endpoint + TRIGGERED_RULES_API_SUFFIX
     return get_base_api_url(region) + TRIGGERED_RULES_API_SUFFIX
         
         
