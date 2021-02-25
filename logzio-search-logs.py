@@ -155,8 +155,8 @@ def get_validated_size(siemplify):
     else:
         try:
             size_num = int(size)
-            if size_num <= 0 or size > MAX_PAGE_SIZE:
-                siemplify.LOGGER.warn("Size should be between 0 and {}. Reverting to default value: {}".format(MAX_PAGE_SIZE, MAX_PAGE_SIZE))
+            if size_num <= 0 or size_num > MAX_PAGE_SIZE:
+                siemplify.LOGGER.warn("Size should be between 1 and {}. Reverting to default value: {}".format(MAX_PAGE_SIZE, MAX_PAGE_SIZE))
                 return MAX_PAGE_SIZE
             else:
                 return size_num
