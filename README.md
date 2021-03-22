@@ -1,45 +1,96 @@
-# logzio-siemplify
+# Logzio-Siemplify
 
-### `connector-fetch-security-events.py`:
-**Input:**
-- **logzio_token**: (mandatory) Logzio security API token.
-- **from_date**: (mandatory) Start time to search security events.
-Can be either in Unix time format, or in the format "%Y-%m-%d %H:%M:%S.%f". Will only be applicable for the connector's first run.
-- **logzio_region**: Your Logzio's account region. Can be left empty for US region.
-- **logzio_custom_endpoint**: Custom endpoint for Logz.io API. Will override the logzio_region param.
-- **page_size**: Controls the number of results per page. Valid inputs are 1 to 1000. Defaults to 25.
-- **search_term**: Filter for a matching string in the security rule name.
-- **severities**: A comma-delimited list of security rules severities: "INFO", "LOW", "MEDIUM", "HIGH", "SEVERE".
+Integrate your Logz.io Cloud SIEM with [Siemplify](https://www.siemplify.co/) to automatically remediate incidents identified by Logz.io Cloud SIEM and increase observability into incident details.
 
-**Output:**
-Returns events that match the query, in the format that the API returns.
+Siemplify is an industry-leading Security Orchestration, Automation & Response (SOAR) solution that gives SOC teams the ability to manage Security Operations from a single platform.
 
-This connector creates a request to the search events API, and sends it.
-When the response from the API received, it collects all the available logs, meaning that if there are more available results than the page size, it will use the pagination mechanism of the API and will send more requests with python futures, until all the available logs are retrieved.
-It saves the latest timestamp (max between latest log timestamp and 1 hour ago) to be the next timestamp to pull logs from.
+## Advantages of the Logz.io <> Siemplify integration
 
-### `logzio-get-logs-by-event-id.py`:
-**Input:**
-- **alert_event_id**: (mandatory) event id you'd like to search logs for.
-- **page_size**: Controls the number of results per page. Valid inputs are 1 to 1000. Defaults to 25.
+* Siemplify can automatically fetch Logz.io security events as new cases.
+  If you prefer to be selective about event fetching, filter Logz.io security events by rule severity and/or rule name. Retroactive fetching is fully supported.
 
-**Output:**
-Returns logs that triggered the event, in the format that the API returns.
+* Siemplify playbooks can trigger automated responses to cases originating in security events identifed by Logz.io.
 
-This action creates a request to the search logs by event id API, and sends it.
-When the response from the API received, it collects all the available logs, meaning that if there are more available results than the page size, it will use the pagination mechanism of the API and will send more requests with python futures, until all the available logs are retrieved.
-It adds the results as insights, and returns the json.
+* Get event details for a specific case. Any Siemplify playbook can use Logz.io actions to increase observability by querying logs for additional details. Siemplify users will be able to run log queries on their Logz.io data within Siemplify playbook actions and investigate events directly from the Siemplify interface.
 
-### `logzio-search-logs.py`:
-**Input:**
-- **query**: The search query. Defaults to `*`.
-- **size**: Maximum amount of logs you'd like the query to return. Limited to 1000 logs.
-- **from_time**: Start time to search.
-- **to_time**: End time to search.
+* Implement the out-of-the-box **Logz.io Indicator Hunting Playbook** for guidance and best practices for conducting an investigation.
 
-**Output:**
-Returns logs that match the query in the following format:
-```shell
+#### Setting up the integration in Siemplify
+
+<div class="tasklist">
+
+##### Add a Logz.io instance to your Siemplify workspace
+
+To set up an integration with Logz.io as a **Default Environment**, you can add Logz.io directly from the Siemplify Marketplace.
+
+In Siemplify, open the **Marketplace** and search for Logz.io. Select the cogswheel to configure a new instance.
+
+![Add Logz.io from the Siemplify Marketplace](https://dytvr9ot2sszz.cloudfront.net/logz-docs/siemplify-integration/siemplify-marketplace.png)
+
+
+Alternatively, if you prefer to add Logz.io as a **Shared Instance**, select the **cogswheel > Integrations** from the top right menu. Select **Shared Instance** from the left menu, then select the plus ➕ to add a new instance. Select the **Logz.io integration** and save.
+
+![Add Logz.io as a Shared Instance to your Siemplify workspace](https://dytvr9ot2sszz.cloudfront.net/logz-docs/siemplify-integration/siemplify-shared-instance.png)
+
+##### Fill in the Logz.io integration panel
+
+Fill in the Logz.io integration panel:
+
+1. **Logz.io Security Token** - Enter the token for your selected Security account.
+2. **Logz.io Region** - Enter the 2-letter region code for your Logz.io account. [Look up your Logz.io account region code](https://docs.logz.io/user-guide/accounts/account-region.html).
+3. **Logz.io Operations Token** - Enter the token for your selected Log Management account.
+4. **Logz.io Custom Endpoint** - (Optional) Only relevant if you use a custom URL with the Logz.io API.
+    * Enter the base url, without the direct path to the method
+    * Relevant if your Logz.io endpoint is _NOT_ in the standard format of `api(region_code).logz.io/`.
+    * Overrides `logzio_region`
+5. Test your connection and save it!
+
+![Logz.io integration panel for Siemplify](https://dytvr9ot2sszz.cloudfront.net/logz-docs/siemplify-integration/siemplify-configure-instance.png)
+
+
+##### Create the Logz.io connector
+
+
+Configure the Logz.io connector `LOGZ.IO fetch-security-events` to create cases in your Siemplify workspace from Logz.io security events.
+
+Logz.io writes a security event log whenever a security rule triggers in your Logz.io Cloud SIEM account. The event log contains details about the rule that was triggered and the conditions it met.
+
+
+![Siemplify Logz.io connector](https://dytvr9ot2sszz.cloudfront.net/logz-docs/siemplify-integration/siemplify-connector.png)
+
+
+1. Configure the connector to open new Siemplify cases based on security events triggered in Logz.io Cloud SIEM. You can make use of the filtering options to be selective about the events.
+
+2. Enable the connector.
+
+3. Save the connector. Siemplify will now fetch security events from Logz.io and open new cases accordingly.
+
+    If you have configured retroactive fetching, there may be many cases created all at once, when you first enable the connector.
+
+![Configure a Siemplify Logz.io connector](https://dytvr9ot2sszz.cloudfront.net/logz-docs/siemplify-integration/siemplify-integrations-panel.png)
+
+
+##### Use Logz.io Actions and Playbooks
+
+The Logz.io integration offers a sample indicator hunting playbook for Siemplify. The playbook can be used to investigate and hunt Indicators of Compromise (IOCs), such as file hashes, suspicious IP addresses, domains, and URLS.
+
+The playbook makes use of Logz.io actions that investigate events and output related information concerning the events, including involved users, IP addresses, host names, etc. that can be used to further research the indicators. Learn more about [investigating security events in Logz.io](/user-guide/cloud-siem/security-events.html) and by [API](/api/#operation/searchSecurityRuleEventLogs).
+
+
+![Sample playbook for threat hunting with Logz.io](https://dytvr9ot2sszz.cloudfront.net/logz-docs/siemplify-integration/siemplify-playbook.png)
+
+</div>
+
+
+#### Logz.io Actions for Siemplify
+
+
+
+### Logzio-search-logs
+
+Searches the logs in your Logz.io Operations account using the [Logz.io log search API](https://docs.logz.io/api/#tag/Search-logs). Upon success, returns the logs that match the query as a paginated list in JSON format.
+
+```
 {
 	"results": [
 		{
@@ -53,12 +104,26 @@ Returns logs that match the query in the following format:
 }
 ```
 
-### `json-adapter.py`:
-**Input:**
-- **fields_to_search**: The fields you want to search in the json.
-- **raw_json**: The json to search in.
-The raw json shoule be in the following format:
-```shell
+* **Script timeout**: 30 seconds
+* **Parameters extracted from the integration**:
+    * `logzio_operations_token`
+    * `logzio_region`
+    * `logzio_custom_endopoint`
+
+
+
+| Parameter | Type | Required/Default | Description |
+|---|---|---|---|
+| from_time | String | Required | Earliest time to search. Accepts any format supported by the [Date parser python library](https://dateparser.readthedocs.io/en/latest/). Examples include unix timestamps in milliseconds, relative time such as `yesterday` or `24 hours ago`, or the format  `%Y-%m-%dT%H:%M:%S.%f`. |
+| to_time | String | -- | Latest time to search. (Leave blank if relative time was used for the parameter `from_time`.) | 
+| query | String | `*` | A search query written in valid Lucene syntax. Cannot be null - send a wildcard (*) if not using a search query. [For more info and limitations](https://docs.logz.io/api#operation/search) |
+| size |  String | -- | Number of log results per query. Limited to 1000 logs. |
+
+### Logzio-get-logs-by-event-id
+
+Fetches the logs that triggered a security event using the [Logz.io Cloud SIEM API](https://docs.logz.io/api/#operation/searchSecurityRulesEvents). Upon success, returns the logs that match the query as a paginated list in JSON format.
+
+```
 {
 	"results": [
 		{
@@ -72,9 +137,44 @@ The raw json shoule be in the following format:
 }
 ```
 
-**Output**:
-New json in the following format:
-```shell
+* **Script timeout**: 30 seconds
+* **Parameters extracted from the integration**:
+    * `logzio_operations_token`
+    * `logzio_region`
+    * `logzio_custom_endopoint`
+
+
+
+| Parameter | Type | Required/Default | Description |
+|---|---|---|---|
+| alert_event_id | String | Required | Unique GUID of the security event in your Logz.io security account. This is the ID of the event you want to investigate.|
+| page_size | String | 25 | Controls the number of results per page. Valid inputs are 1 to 1000. Defaults to 25. |
+
+
+### Json-adapter
+
+Converts logs from your Logz.io accounts into a constant JSON format that is compatible with Siemplify’s playbooks. Receives fields to search, and a json to search them in.
+
+
+The json must be received in the following format: 
+
+```
+{
+    "results": [
+        { 
+            #log
+        },
+        .....
+    ]
+}
+
+```
+
+
+
+If the fields exist in the json, it returns them in the following format:
+
+```
 {
     "results": [
         { 
@@ -84,18 +184,103 @@ New json in the following format:
         .....
     ]
 }
+
 ```
 
-This action searches for the fields in the json and returns it in the format above, to match Siemplify system.
 
-### `ping.py`:
-This action validates the integrations inputs.
-It sends requests to the whoami API to validate the API and the tokens. For testing only.
+* **Script timeout**: 30 seconds
 
 
-### General integration inputs:
-General inputs applies only for the actions. Connector has it's own params.
-- logzio_operation_token - mendatory
-- logzio_security_token - mendatory
-- logzio_region
-- logzio_custom_endpoint
+
+| Parameter | Type | Required/Default | Description |
+|---|---|---|---|
+| fields_to_search | String | Required | Comma separated list of fields to search within the JSON. |
+| raw_json | String | Required | Raw data in JSON format that is to be searched. |
+
+
+### Ping
+
+Pings Logz.io to test and validate connectivity to both your Logz.io security and operations accounts using the [Logz.io API](https://docs.logz.io/api/#tag/Who-am-I).
+
+* **Script timeout**: 20 seconds.
+* **Parameters extracted from the integration**:
+    * `logzio_security_token`
+    * `logzio_operations_token`
+    * `logzio_region`
+    * `logzio_custom_endopoint`
+
+
+
+
+#### Initializing the Logz.io playbook in Siemplify
+
+<div class="tasklist">
+
+##### Add the Logz.io Playbook
+
+In your Siemplify workspace, import the playbook **Logz.io Indicator Hunting**.
+
+The playbook makes use of the following actions:
+
+* logzio-search-logs
+* logzio Json-adapter
+* Trigger - custom value
+* Blocks
+* Previous action conditions
+* Instruction
+* Case tag
+* Create entity relationship
+
+
+##### Initialize the block parameters
+
+The playbook offers 4 use-cases (aka _branches_), each specific to a single indicator type: hash, URL, IP, and domain.
+
+
+![Logz.io Indicator Hunting playbook for Siemplify should be initialized for a single indicator type](https://dytvr9ot2sszz.cloudfront.net/logz-docs/siemplify-integration/siemplify-initialize-block.png)
+
+
+Configure the input parameter that will initialize the playbook.
+
+| Action | Field | Description |
+|---|---|---|
+| Hash_initialize_block| PB_Hash | Initializes hash input parameters |
+| URL_initialize_block| PB_Url | Initializes URL input parameters |
+| IP_initialize_block| PB_IP | Initializes IP input parameters |
+| Domain_initialize_block| PB_Domain | Initializes domain input parameters |
+
+![Initialize the input block for the Logz.io playbook for Siemplify](https://dytvr9ot2sszz.cloudfront.net/logz-docs/siemplify-integration/siemplify-initialize-block2.png)
+
+
+##### Initialize the json-adapter parameters
+
+Whenever the initializing block is triggered, the `Logzio-search-logs` action will automatically run a search query in your Logz.io account for logs that match the output of the initializing block.
+
+The action returns an array of relevant logs that matched the query in JSON format. The results are designed to help SOC analysts investigate the context surrounding the indicator.
+
+The `Logzio-json-adapter` action translates Logz.io output into entities that conform to the Siemplify schema and can be reused by any Siemplify playbook and action.
+
+In the example below, the action searches for `sourceHostName` in all the logs and extracts the results to a Siemplify entity.
+
+
+**NOTE**: You can provide more than 1 field, regardless of the log type.
+
+
+![Initialize the Logz.io json adapter for Siemplify](https://dytvr9ot2sszz.cloudfront.net/logz-docs/siemplify-integration/hash-json-adapter.png)
+
+
+##### Investigate the indicator
+
+In our example, the playbook ran an action to extract the field `sourceHostName` from all logs. As a result, the playbook identified another `hostname` affected by the same hash indicator. The red color indicates that the new station is involved and was discovered by the playbook.
+
+
+![Output example for the Logz.io incident hunting playbook for Siemplify](https://dytvr9ot2sszz.cloudfront.net/logz-docs/siemplify-integration/playbook-output-example.png)
+
+
+##### Repeat for other indicator types
+
+
+The **Logz.io Indicator Hunting Playbook** can help you track several indicator types. You'll need to repeat the process to initialize the playbook for each indicator type, as relevant.
+
+
+**NOTE**: The set of actions for each branch are indicator-specific, yet equivalent.
