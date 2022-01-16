@@ -6,6 +6,7 @@ import concurrent.futures
 import copy
 import datetime
 import dateparser
+import distutils
 import json
 import math
 import requests
@@ -222,7 +223,8 @@ def create_alerts_array(siemplify, collected_events, api_token, url, region):
     # siemplify.LOGGER.info("Total collected: {}".format(len(collected_events)))
 
     latest_timestamp = siemplify.fetch_timestamp()
-    add_raw_logs = siemplify.extract_connector_param("fetch_raw_logs", is_mandatory=False, default_value=False)
+    add_raw_logs = bool(
+        distutils.util.strtobool(siemplify.extract_connector_param("fetch_raw_logs", is_mandatory=False)))
     for logzio_event in collected_events:
         event = create_event(siemplify, logzio_event)
         log_events = []
