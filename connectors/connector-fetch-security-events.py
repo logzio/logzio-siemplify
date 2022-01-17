@@ -296,22 +296,26 @@ def do_pagination(siemplify, payload, url, api_token):
     if response["results"] == 0:
         siemplify.LOGGER.info(f"Could not find results for {url}")
         return results
-    results = response["results"]
+    results += response["results"]
     total = response["total"]
+    siemplify.LOGGER.info(f"Total results for call to {url}: {total}")
     num_pages = math.ceil(total / int(response["pagination"]["pageSize"]))
-    with concurrent.futures.ThreadPoolExecutor(max_workers=num_pages) as executor:
-        futures = []
-        while len(results) < total and errors_on_pagination < max_allowed_errors_for_pagination:
-            payload["pagination"]["pageNumber"] += 1
-            siemplify.LOGGER.info(f"Doing pagination {payload['pagination']['pageNumber']} for {url}")
-            futures.append(executor.submit(execute_logzio_api_call, siemplify, api_token, json.dumps(payload), url))
-        for future in concurrent.futures.as_completed(futures):
-            response = future.result()
-            if response is None or len(response["results"]) == 0:
-                siemplify.LOGGER.error("Error in pagination procedure. Skipping to next page, if exists.")
-                errors_on_pagination += 1
-                continue
-            results += response["results"]
+    siemplify.LOGGER.info(f"Number of pages for call to {url}: {num_pages}")
+    if num_pages > 1:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_pages) as executor:
+            futures = []
+            while len(results) < total and errors_on_pagination < max_allowed_errors_for_pagination:
+                payload["pagination"]["pageNumber"] += 1
+                siemplify.LOGGER.info(f"Doing pagination {payload['pagination']['pageNumber']} for {url}")
+                futures.append(executor.submit(execute_logzio_api_call, siemplify, api_token, json.dumps(payload), url))
+            for future in concurrent.futures.as_completed(futures):
+                response = future.result()
+                if response is None or len(response["results"]) == 0:
+                    siemplify.LOGGER.error("Error in pagination procedure. Skipping to next page, if exists.")
+                    errors_on_pagination += 1
+                    continue
+                results += response["results"]
+    siemplify.LOGGER.info(f"Finished pagination for {url} with {len(results)} results")
     return results
 
 
