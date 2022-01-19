@@ -332,15 +332,15 @@ def execute_logzio_api_call(siemplify, api_token, payload, url):
 
     try:
         while retries <= max_retries:
-            siemplify.LOGGER.info(f"Try {retries}/{max_retries}")
+            siemplify.LOGGER.info(f"Try {retries}/{max_retries} to {url}")
             response = requests.post(url, headers=headers, data=payload, timeout=5)
             siemplify.LOGGER.info("Status code from Logz.io: {}".format(response.status_code))
             if response.status_code == 200:
                 response = json.loads(response.content)
                 return response
             elif response.status_code == 404:
-                siemplify.LOGGER.warn(
-                    f"Try {retries}/{max_retries} API request returned 404. Sleeping for {retry_sleep} seconds")
+                siemplify.LOGGER.warn("API request returned {}:\n{}".format(response.status_code, response.text))
+                siemplify.LOGGER.warn(f"Sleeping for {retry_sleep} seconds")
                 time.sleep(retry_sleep)
                 retries += 1
             else:
