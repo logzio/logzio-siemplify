@@ -321,20 +321,31 @@ def do_pagination(siemplify, payload, url, api_token):
 
 def execute_logzio_api_call(siemplify, api_token, payload, url):
     """ Communicates with the Logz.io API and returnes the response """
+    max_retries = 3
+    retries = 1
+    retry_sleep = 0.5
+
     headers = {
         'Content-Type': 'application/json',
         'X-API-TOKEN': api_token
     }
 
     try:
-        response = requests.post(url, headers=headers, data=payload, timeout=5)
-        siemplify.LOGGER.info("Status code from Logz.io: {}".format(response.status_code))
-        if response.status_code == 200:
-            response = json.loads(response.content)
-            return response
-        else:
-            siemplify.LOGGER.error("API request returned {}:\n{}".format(response.status_code, response.text))
-            return None
+        while retries <= max_retries:
+            siemplify.LOGGER.info(f"Try {retries}/{max_retries}")
+            response = requests.post(url, headers=headers, data=payload, timeout=5)
+            siemplify.LOGGER.info("Status code from Logz.io: {}".format(response.status_code))
+            if response.status_code == 200:
+                response = json.loads(response.content)
+                return response
+            elif response.status_code == 404:
+                siemplify.LOGGER.warn(
+                    f"Try {retries}/{max_retries} API request returned 404. Sleeping for {retry_sleep} seconds")
+                time.sleep(retry_sleep)
+                retries += 1
+            else:
+                siemplify.LOGGER.error("API request returned {}:\n{}".format(response.status_code, response.text))
+                return None
     except Exception as e:
         siemplify.LOGGER.error("Error occurred while calling Logz.io API:\n{}".format(e))
         return None
