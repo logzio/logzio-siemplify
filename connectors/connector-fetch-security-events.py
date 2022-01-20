@@ -325,7 +325,7 @@ def do_pagination(siemplify, payload, url, api_token):
 
 def execute_logzio_api_call(siemplify, api_token, payload, url, page_number):
     """ Communicates with the Logz.io API and returnes the response """
-    max_retries = 3
+    max_retries = 5
     retries = 1
     retry_sleep = 0.5
 
