@@ -10,6 +10,7 @@ import distutils
 import json
 import math
 import requests
+import time
 
 CONNECTOR_NAME = "fetch-security-events"
 PRODUCT = "Logz.io"
@@ -290,7 +291,8 @@ def do_pagination(siemplify, payload, url, api_token):
     max_allowed_errors_for_pagination = 5
     errors_on_pagination = 0
     results = []
-    response = execute_logzio_api_call(siemplify, api_token, json.dumps(payload), url)
+    page_number = 1
+    response = execute_logzio_api_call(siemplify, api_token, payload, url, page_number)
     if response is None:
         return None
     if response["results"] == 0:
@@ -304,10 +306,12 @@ def do_pagination(siemplify, payload, url, api_token):
     if num_pages > 1:
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_pages) as executor:
             futures = []
-            while len(results) < total and errors_on_pagination < max_allowed_errors_for_pagination:
-                payload["pagination"]["pageNumber"] += 1
+            while page_number <= num_pages and errors_on_pagination < max_allowed_errors_for_pagination:
+                # payload["pagination"]["pageNumber"] += 1
                 siemplify.LOGGER.info(f"Doing pagination {payload['pagination']['pageNumber']} for {url}")
-                futures.append(executor.submit(execute_logzio_api_call, siemplify, api_token, json.dumps(payload), url))
+                page_number += 1
+                futures.append(
+                    executor.submit(execute_logzio_api_call, siemplify, api_token, payload, url, page_number))
             for future in concurrent.futures.as_completed(futures):
                 response = future.result()
                 if response is None or len(response["results"]) == 0:
@@ -319,7 +323,7 @@ def do_pagination(siemplify, payload, url, api_token):
     return results
 
 
-def execute_logzio_api_call(siemplify, api_token, payload, url):
+def execute_logzio_api_call(siemplify, api_token, payload, url, page_number):
     """ Communicates with the Logz.io API and returnes the response """
     max_retries = 3
     retries = 1
@@ -330,10 +334,12 @@ def execute_logzio_api_call(siemplify, api_token, payload, url):
         'X-API-TOKEN': api_token
     }
 
+    payload["pagination"]["pageNumber"] = page_number
+    data = json.dumps(payload)
     try:
         while retries <= max_retries:
-            siemplify.LOGGER.info(f"Try {retries}/{max_retries} to {url}")
-            response = requests.post(url, headers=headers, data=payload, timeout=5)
+            siemplify.LOGGER.info(f"Try {retries}/{max_retries} to {url} on page {page_number}")
+            response = requests.post(url, headers=headers, data=data, timeout=5)
             siemplify.LOGGER.info("Status code from Logz.io: {}".format(response.status_code))
             if response.status_code == 200:
                 response = json.loads(response.content)
