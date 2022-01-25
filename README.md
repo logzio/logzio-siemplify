@@ -284,3 +284,13 @@ The **Logz.io Indicator Hunting Playbook** can help you track several indicator 
 
 
 **NOTE**: The set of actions for each branch are indicator-specific, yet equivalent.
+
+
+### Changelog:
+
+- **0.2.0**:
+  - **Enhance connector:**
+    - Added `enable_muted_events` parameter - for fetching muted events.
+    - Added `fetch_raw_logs` parameter - for fetching raw logs & adding them to the case.
+- **0.1.0**:
+  - Initial release.
