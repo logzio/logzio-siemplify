@@ -307,7 +307,6 @@ def do_pagination(siemplify, payload, url, api_token):
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_pages) as executor:
             futures = []
             while page_number <= num_pages and errors_on_pagination < max_allowed_errors_for_pagination:
-                # payload["pagination"]["pageNumber"] += 1
                 siemplify.LOGGER.info(f"Doing pagination {payload['pagination']['pageNumber']} for {url}")
                 page_number += 1
                 futures.append(
