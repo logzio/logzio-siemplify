@@ -6,7 +6,6 @@ import concurrent.futures
 import copy
 import datetime
 import dateparser
-import distutils
 import json
 import math
 import requests
@@ -60,8 +59,7 @@ def create_request_body_obj_events(siemplify, page_number=1):
     severities = siemplify.extract_connector_param("severities", is_mandatory=False)
     page_size = siemplify.extract_connector_param("page_size", is_mandatory=False, default_value=DEFAULT_PAGE_SIZE,
                                                   input_type=int)
-    enable_muted_events = bool(
-        distutils.util.strtobool(siemplify.extract_connector_param("enable_muted_events", is_mandatory=False)))
+    enable_muted_events = siemplify.extract_connector_param("enable_muted_events", is_mandatory=False, input_type=bool)
     if enable_muted_events:
         siemplify.LOGGER.info("Muted events will be fetched, if exist")
     if page_size < MIN_PAGE_SIZE or page_size > MAX_PAGE_SIZE:
@@ -172,8 +170,7 @@ def create_alerts_array(siemplify, collected_events, api_token, url, region):
     """
     alerts = []
     latest_timestamp = siemplify.fetch_timestamp()
-    add_raw_logs = bool(
-        distutils.util.strtobool(siemplify.extract_connector_param("fetch_raw_logs", is_mandatory=False)))
+    add_raw_logs = siemplify.extract_connector_param("fetch_raw_logs", is_mandatory=False, input_type=bool)
     for logzio_event in collected_events:
         event = create_event(siemplify, logzio_event)
         log_events = []
@@ -307,6 +304,7 @@ def do_pagination(siemplify, payload, url, api_token):
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_pages) as executor:
             futures = []
             while page_number <= num_pages and errors_on_pagination < max_allowed_errors_for_pagination:
+                # payload["pagination"]["pageNumber"] += 1
                 siemplify.LOGGER.info(f"Doing pagination {payload['pagination']['pageNumber']} for {url}")
                 page_number += 1
                 futures.append(
