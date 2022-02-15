@@ -129,7 +129,9 @@ def create_alert(siemplify, event, logs_events, logzio_event):
     """
     siemplify.LOGGER.info("Processing siempify alert for logzio security event: {}".format(logzio_event["alertId"]))
     alert_info = AlertInfo()
-
+    add_alert_details_to_case = siemplify.extract_connector_param("add_alert_details_to_case", is_mandatory=False,
+                                                                  input_type=bool)
+    siemplify.LOGGER.info(f"add_alert_details_to_case is set to: {add_alert_details_to_case}")
     try:
         alert_info.display_id = logzio_event["alertEventId"]
         alert_info.ticket_id = logzio_event["alertEventId"]
@@ -148,9 +150,10 @@ def create_alert(siemplify, event, logs_events, logzio_event):
     siemplify.LOGGER.info("Creating siempify alert for logzio security event: {}".format(logzio_event["alertId"]))
     try:
         if alert_info is not None and event is not None:
-            alert_info.events.append(event)
-            siemplify.LOGGER.info(
-                "Added Event {} to Alert {}".format(logzio_event["alertEventId"], logzio_event["alertId"]))
+            if add_alert_details_to_case:
+                alert_info.events.append(event)
+                siemplify.LOGGER.info(
+                    "Added Event {} to Alert {}".format(logzio_event["alertEventId"], logzio_event["alertId"]))
             if logs_events is not None and len(logs_events) > 0:
                 alert_info.events += logs_events
                 siemplify.LOGGER.info(f"Added {len(logs_events)} log events to Alert {logzio_event['alertId']}")
@@ -304,7 +307,6 @@ def do_pagination(siemplify, payload, url, api_token):
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_pages) as executor:
             futures = []
             while page_number <= num_pages and errors_on_pagination < max_allowed_errors_for_pagination:
-                # payload["pagination"]["pageNumber"] += 1
                 siemplify.LOGGER.info(f"Doing pagination {payload['pagination']['pageNumber']} for {url}")
                 page_number += 1
                 futures.append(
