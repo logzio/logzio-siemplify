@@ -61,17 +61,21 @@ Logz.io writes a security event log whenever a security rule triggers in your Lo
 
 1. Configure the connector to open new Siemplify cases based on security events triggered in Logz.io Cloud SIEM. You can make use of the filtering options to be selective about the events.
 
-| PARAMETER                | DESCRIPTION                                                                                                                                    | REQUIRED/DEFAULT VALUE |
-|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|
-| `logzio_token`           | API token for your Logz.io security account                                                                                                    | Required               |
-| `logzio_region`          | 2-letter region code for your Logz.io account.                                                                                                 | `null`                 |
-| `from_date`              | Earliest time to search. Accepts formats supported by dateparser lib: Unix timestamps, relative time, or the format  \"%Y-%m-%dT%H:%M:%S.%f\". | Required               |
-| `logzio_custom_endpoint` | Optional. Relevant if you use a custom URL with the Logz.io API. Overrides `logzio_region`.                                                    | `null`                 |
-| `enable_muted_events`    | Defines if muted events need to be passed. The endpoint will return both non-muted and muted events if this is set to True.                    | `True`                 |
-| `fetch_raw_logs`         | Enable if you wish to fetch the raw logs that triggered the events.                                                                            | `False`                |
-| `page_size`              | Controls the number of results per page. Valid inputs are 1 to 1000.                                                                           | `25`                   |
-| `search_term`            | Filter for a matching string in the rule name.                                                                                                 | `""`                   |
-| `severities`             | A comma-delimited list of security rules severities: `INFO`, `LOW`, `MEDIUM`, `HIGH`, `SEVERE`.                                                | `""`                   |
+| PARAMETER                   | DESCRIPTION                                                                                                                                    | REQUIRED/DEFAULT VALUE |
+|-----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|
+| `logzio_token`              | API token for your Logz.io security account                                                                                                    | Required               |
+| `logzio_region`             | 2-letter region code for your Logz.io account.                                                                                                 | `null`                 |
+| `from_date`                 | Earliest time to search. Accepts formats supported by dateparser lib: Unix timestamps, relative time, or the format  \"%Y-%m-%dT%H:%M:%S.%f\". | Required               |
+| `logzio_custom_endpoint`    | Optional. Relevant if you use a custom URL with the Logz.io API. Overrides `logzio_region`.                                                    | `null`                 |
+| `enable_muted_events`       | Defines if muted events need to be passed. The endpoint will return both non-muted and muted events if this is set to True.                    | `True`                 |
+| `add_alert_details_to_case` | Enable if you wish to include the Logz.io Alert in your Siemplify case.                                                                        | `True`                 |
+| `fetch_raw_logs`            | Enable if you wish to fetch the raw logs that triggered the events.                                                                            | `False`                |
+| `page_size`                 | Controls the number of results per page. Valid inputs are 1 to 1000.                                                                           | `25`                   |
+| `search_term`               | Filter for a matching string in the rule name.                                                                                                 | `""`                   |
+| `severities`                | A comma-delimited list of security rules severities: `INFO`, `LOW`, `MEDIUM`, `HIGH`, `SEVERE`.                                                | `""`                   |
+
+
+**IMPORTANT NOTE:** when you configure your connector, make sure that at least one of the parameters `add_alert_details_to_case`, `fetch_raw_logs` are enabled.
 
 2. Enable the connector.
 
